@@ -161,7 +161,14 @@ public class JobServiceImpl implements JobService {
             String studentBranch = student.getBranch().toLowerCase();
             boolean match = false;
             for (String b : eligibleBranches.split(",")) {
-                if (studentBranch.contains(b.trim().toLowerCase())) {
+                String branchCode = b.trim().toLowerCase();
+                if (studentBranch.contains(branchCode) || 
+                    (branchCode.equals("cs") && (studentBranch.contains("computer") || studentBranch.contains("cse"))) ||
+                    (branchCode.equals("it") && studentBranch.contains("information")) ||
+                    (branchCode.equals("ece") && studentBranch.contains("electronics")) ||
+                    (branchCode.equals("ee") && studentBranch.contains("electrical")) ||
+                    (branchCode.equals("me") && studentBranch.contains("mechanical")) ||
+                    (branchCode.equals("bio") && studentBranch.contains("bio"))) {
                     match = true;
                     break;
                 }

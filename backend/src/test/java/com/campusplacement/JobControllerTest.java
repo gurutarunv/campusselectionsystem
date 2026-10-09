@@ -5,16 +5,16 @@ import com.campusplacement.dto.JobResponse;
 import com.campusplacement.enums.JobStatus;
 import com.campusplacement.enums.JobStream;
 import com.campusplacement.enums.JobType;
-import com.campusplacement.security.CustomUserDetailsService;
-import com.campusplacement.security.JwtTokenProvider;
 import com.campusplacement.service.JobService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.math.BigDecimal;
 import java.util.Collections;
 
@@ -23,21 +23,21 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(JobController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@ExtendWith(MockitoExtension.class)
 class JobControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @Mock
     private JobService jobService;
 
-    @MockBean
-    private JwtTokenProvider jwtTokenProvider;
+    @InjectMocks
+    private JobController jobController;
 
-    @MockBean
-    private CustomUserDetailsService customUserDetailsService;
+    @BeforeEach
+    void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(jobController).build();
+    }
 
     @Test
     void getJobs_PublicEndpoint_Returns200WithJobList() throws Exception {
