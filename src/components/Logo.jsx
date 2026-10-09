@@ -1,112 +1,96 @@
 import React from 'react';
 
-export default function Logo({ theme = 'light', height = '45px', style = {} }) {
-  // Dual-theme color mapping
-  const textColor = theme === 'dark' ? '#FFFFFF' : '#1A1A1A';
-  const orangeColor = '#FF6B00';
+export default function Logo({ theme = 'light', height = '46px', style = {} }) {
+  const isDark = theme === 'dark';
+  const primaryColor = '#2563EB'; // Royal Blue
+  const accentColor = '#059669';  // Emerald Green
+  const titleColor = isDark ? '#FFFFFF' : '#0F172A'; // Slate 900 or White
+  const subtitleColor = isDark ? '#94A3B8' : '#64748B'; // Slate 500
 
   return (
     <svg 
-      viewBox="0 0 250 120" 
+      viewBox="0 0 320 80" 
       style={{ height: height, width: 'auto', display: 'block', ...style }}
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* ROW 1: "10000" + Monitor Graphic */}
-      {/* "10000" Text */}
-      <text 
-        x="10" 
-        y="42" 
-        fontSize="44" 
-        fontWeight="800" 
-        fontFamily="'Outfit', -apple-system, sans-serif" 
-        letterSpacing="-1.5"
-      >
-        <tspan fill={orangeColor}>1</tspan>
-        <tspan fill={textColor}>0000</tspan>
-      </text>
+      {/* BRAND ICON: Graduation Cap & Career Growth Compass */}
+      <g transform="translate(10, 10)">
+        {/* Rounded Icon Background */}
+        <rect 
+          x="0" 
+          y="0" 
+          width="60" 
+          height="60" 
+          rx="14" 
+          fill="url(#cpa-gradient)" 
+        />
+        
+        {/* Graduation Cap Top */}
+        <polygon 
+          points="30,16 48,24 30,32 12,24" 
+          fill="#FFFFFF" 
+        />
+        
+        {/* Cap Base */}
+        <path 
+          d="M18,27 L18,34 C18,37.5 42,37.5 42,34 L42,27" 
+          fill="#FFFFFF" 
+          opacity="0.95" 
+        />
+        
+        {/* Tassel & Growth Star */}
+        <path 
+          d="M44,25 L47,33 L48.5,33" 
+          stroke="#FCD34D" 
+          strokeWidth="1.5" 
+          strokeLinecap="round" 
+          fill="none" 
+        />
+        <circle cx="48.5" cy="33.5" r="1.5" fill="#FCD34D" />
 
-      {/* MONITOR GRAPHIC (Positioned to the right of 10000) */}
-      <g transform="translate(142, 6)">
-        {/* Monitor Base */}
-        <path d="M12,40 L28,40 L25,43 L15,43 Z" fill={textColor} />
-        
-        {/* Monitor Stem */}
-        <rect x="18" y="32" width="4" height="8" fill={textColor} />
-        
-        {/* Monitor Outer Frame */}
-        <rect x="2" y="8" width="36" height="25" rx="3" fill={textColor} />
-        
-        {/* Monitor Inner Screen (Orange) */}
-        <rect x="5" y="11" width="30" height="19" rx="1.5" fill="#FF8E3C" />
-        
-        {/* Code Sign "</>" inside screen */}
-        <text 
-          x="20" 
-          y="25" 
-          fontSize="12" 
-          fontWeight="900" 
-          fontFamily="'Outfit', -apple-system, sans-serif" 
-          textAnchor="middle" 
-          fill="#1A1A1A"
-        >
-          &lt;/&gt;
-        </text>
-
-        {/* Graduation Cap on top-right of monitor */}
-        <g transform="translate(23, -2)">
-          {/* Diamond cap top */}
-          <polygon points="12,4 23,8 12,12 1,8" fill={textColor} />
-          
-          {/* Skull cap under diamond */}
-          <path d="M5,9.5 L5,12 C5,13.5 19,13.5 19,12 L19,9.5" fill={textColor} />
-          
-          {/* Tassel */}
-          <path d="M18,9 L21,15 L22.5,15" stroke={textColor} strokeWidth="1" fill="none" />
-          <circle cx="22.5" cy="15.5" r="0.8" fill={textColor} />
-        </g>
-
-        {/* TM Symbol */}
-        <text 
-          x="41" 
-          y="12" 
-          fontSize="5" 
-          fontWeight="bold" 
-          fontFamily="'Outfit', -apple-system, sans-serif" 
-          fill={textColor}
-        >
-          TM
-        </text>
+        {/* Upward Growth Arrow underneath */}
+        <path 
+          d="M22,46 L30,40 L38,46" 
+          stroke="#FFFFFF" 
+          strokeWidth="2.5" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+          fill="none" 
+        />
       </g>
 
-      {/* ROW 2: "C{O}DERS" */}
+      {/* GRADIENT DEFINITIONS */}
+      <defs>
+        <linearGradient id="cpa-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#1E40AF" />
+          <stop offset="100%" stopColor="#2563EB" />
+        </linearGradient>
+      </defs>
+
+      {/* BRAND TEXT: Main Title */}
       <text 
-        x="10" 
-        y="85" 
-        fontSize="44" 
+        x="82" 
+        y="36" 
+        fontSize="21" 
         fontWeight="800" 
-        fontFamily="'Outfit', -apple-system, sans-serif" 
-        letterSpacing="2"
+        fontFamily="'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" 
+        letterSpacing="-0.5"
+        fill={titleColor}
       >
-        <tspan fill={textColor}>C</tspan>
-        <tspan fill={orangeColor}>{"{"}</tspan>
-        <tspan fill={orangeColor}>O</tspan>
-        <tspan fill={orangeColor}>{"}"}</tspan>
-        <tspan fill={textColor}>DERS</tspan>
+        Campus <tspan fill={primaryColor}>Placement</tspan>
       </text>
 
-      {/* ROW 3: Tagline "Right path for a Bright Career." */}
+      {/* BRAND TEXT: Subtitle / Product Identity */}
       <text 
-        x="11" 
-        y="110" 
-        fontSize="11.5" 
+        x="82" 
+        y="56" 
+        fontSize="12.5" 
         fontWeight="600" 
-        fontFamily="'Outfit', -apple-system, sans-serif" 
-        letterSpacing="0.2"
+        fontFamily="'Outfit', -apple-system, BlinkMacSystemFont, sans-serif" 
+        letterSpacing="1.2"
+        fill={accentColor}
       >
-        <tspan fill={orangeColor}>Right</tspan>
-        <tspan fill={textColor}> path for a </tspan>
-        <tspan fill={orangeColor}>Bright</tspan>
-        <tspan fill={textColor}> Career.</tspan>
+        ASSISTANCE <tspan fill={subtitleColor} fontWeight="500" letterSpacing="0.3">| PORTAL</tspan>
       </text>
     </svg>
   );

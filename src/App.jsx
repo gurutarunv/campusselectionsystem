@@ -8,6 +8,7 @@ import OnboardingPage from './pages/OnboardingPage';
 import StudentDashboard from './pages/StudentDashboard';
 import JobOpeningsPage from './pages/JobOpeningsPage';
 import RecruiterDashboard from './pages/RecruiterDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('landing');
@@ -26,14 +27,16 @@ export default function App() {
         let initialPage = 'landing';
         if (savedUser.role === 'student') {
           const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
-          const studentProfile = profiles[savedUser.username.toLowerCase()];
+          const studentProfile = profiles[savedUser.email?.toLowerCase()] || profiles[savedUser.username?.toLowerCase()];
           if (studentProfile) {
             initialPage = 'dashboard';
           } else {
             initialPage = 'onboarding';
           }
-        } else if (savedUser.role === 'company') {
+        } else if (savedUser.role === 'company' || savedUser.role === 'recruiter') {
           initialPage = 'recruiter-dashboard';
+        } else if (savedUser.role === 'admin') {
+          initialPage = 'admin-dashboard';
         }
         setCurrentPage(initialPage);
         setHistoryStack([initialPage]);
@@ -95,8 +98,9 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('current_user');
+    localStorage.removeItem('auth_token');
     setCurrentUser(null);
-    addToast('Logged out successfully.', 'success');
+    addToast('Signed out of placement session.', 'success');
     handleNavigate('landing', true);
   };
 
@@ -125,7 +129,7 @@ export default function App() {
           />
         );
       case 'dashboard':
-        return <StudentDashboard user={currentUser} onNavigate={handleNavigate} onBack={handleBack} />;
+        return <StudentDashboard user={currentUser} onNavigate={handleNavigate} onBack={handleBack} addToast={addToast} />;
       case 'it-placements':
         return (
           <JobOpeningsPage 
@@ -149,6 +153,15 @@ export default function App() {
       case 'recruiter-dashboard':
         return (
           <RecruiterDashboard 
+            user={currentUser} 
+            onNavigate={handleNavigate} 
+            onBack={handleBack}
+            addToast={addToast} 
+          />
+        );
+      case 'admin-dashboard':
+        return (
+          <AdminDashboard 
             user={currentUser} 
             onNavigate={handleNavigate} 
             onBack={handleBack}

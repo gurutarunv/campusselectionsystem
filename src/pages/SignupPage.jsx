@@ -6,8 +6,9 @@ export default function SignupPage({ onNavigate, onBack, addToast }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignupSubmit = (e) => {
+  const handleSignupSubmit = async (e) => {
     e.preventDefault();
 
     const trimmedUsername = username.trim();
@@ -19,63 +20,100 @@ export default function SignupPage({ onNavigate, onBack, addToast }) {
     }
 
     if (password.length < 6) {
-      addToast('Password must be at least 6 characters.', 'error');
+      addToast('Password must be at least 6 characters long.', 'error');
       return;
+    }
+
+    setIsLoading(true);
+
+    // Try creating account on real Spring Boot backend if available
+    try {
+      const endpoint = role === 'student' 
+        ? 'http://localhost:8080/api/v1/auth/register/student'
+        : 'http://localhost:8080/api/v1/auth/register/company';
+      
+      const payload = role === 'student'
+        ? { email: trimmedEmail, password: password, fullName: trimmedUsername, phone: '0000000000', gender: 'other' }
+        : { email: trimmedEmail, password: password, companyName: trimmedUsername, industry: 'Technology' };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        addToast('Account created successfully on Spring Boot backend! Please sign in.', 'success');
+        setIsLoading(false);
+        setTimeout(() => onNavigate('login'), 1200);
+        return;
+      }
+    } catch (err) {
+      // Fallback to local storage
     }
 
     let db = JSON.parse(localStorage.getItem('user_db')) || {};
 
-    // Check if username already exists
-    if (db[trimmedUsername.toLowerCase()]) {
-      addToast(`Username "${trimmedUsername}" is already registered! Please choose another.`, 'error');
+    // Check if user already exists
+    if (db[trimmedEmail.toLowerCase()] || db[trimmedUsername.toLowerCase()]) {
+      setIsLoading(false);
+      addToast(`An account with this email/username is already registered! Please sign in.`, 'error');
       return;
     }
 
     // Save user
-    db[trimmedUsername.toLowerCase()] = {
+    const newUser = {
       role: role,
       username: trimmedUsername,
       email: trimmedEmail,
       password: password
     };
 
+    db[trimmedEmail.toLowerCase()] = newUser;
+    db[trimmedUsername.toLowerCase()] = newUser;
+
     localStorage.setItem('user_db', JSON.stringify(db));
-    addToast('Account created successfully! Redirecting to Login...', 'success');
+    setIsLoading(false);
+    addToast('Account registered successfully! Redirecting to login...', 'success');
 
     setTimeout(() => {
       onNavigate('login');
-    }, 1500);
+    }, 1200);
   };
 
   return (
     <div className="bg">
-      <div className="container-box glass-card" style={{ maxWidth: '480px', padding: '40px 30px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '25px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Logo height="80px" style={{ marginBottom: '15px' }} />
-          <p style={{ color: 'var(--slate-600)', fontWeight: 500 }}>Create your recruitment portal account</p>
+      <div className="container-box" style={{ maxWidth: '500px', padding: '36px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Logo height="54px" style={{ marginBottom: '12px' }} />
+          <p style={{ color: 'var(--slate-500)', fontSize: '14px', fontWeight: 500 }}>
+            Create your account to start recruiting or applying
+          </p>
         </div>
 
         {/* Registration Form */}
         <form onSubmit={handleSignupSubmit}>
           <div className="form-group">
-            <label htmlFor="role">Select your role:</label>
+            <label htmlFor="role">Account Type / Role:</label>
             <select 
               id="role" 
               value={role} 
               onChange={(e) => setRole(e.target.value)}
               required
             >
-              <option value="student">Student / Candidate</option>
-              <option value="company">Recruiter / Company</option>
+              <option value="student">Student / Placement Candidate</option>
+              <option value="company">Corporate Recruiter / Company</option>
             </select>
           </div>
 
           <div className="form-group">
-            <label htmlFor="username">Choose Username:</label>
+            <label htmlFor="username">
+              {role === 'student' ? 'Full Name:' : 'Company / Recruiter Name:'}
+            </label>
             <input 
               type="text" 
               id="username" 
-              placeholder="e.g. gurut99" 
+              placeholder={role === 'student' ? 'e.g. Guru Prasad' : 'e.g. Google India'} 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required 
@@ -84,11 +122,11 @@ export default function SignupPage({ onNavigate, onBack, addToast }) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email Address:</label>
+            <label htmlFor="email">Official Email Address:</label>
             <input 
               type="email" 
               id="email" 
-              placeholder="e.g. guru@10000coders.co" 
+              placeholder={role === 'student' ? 'e.g. student@campus.edu' : 'e.g. recruiter@company.com'} 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required 
@@ -100,7 +138,7 @@ export default function SignupPage({ onNavigate, onBack, addToast }) {
             <input 
               type="password" 
               id="password" 
-              placeholder="Min. 6 characters" 
+              placeholder="Minimum 6 characters" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required 
@@ -108,19 +146,26 @@ export default function SignupPage({ onNavigate, onBack, addToast }) {
             />
           </div>
 
-          <button type="submit" className="btn-primary" style={{ marginTop: '10px' }}>Create Account</button>
+          <button 
+            type="submit" 
+            className="btn-primary" 
+            style={{ width: '100%', marginTop: '8px' }}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Creating Account...' : 'Register Account'}
+          </button>
           
           <button 
             type="button" 
             className="btn-outline" 
-            style={{ marginTop: '10px', width: '100%' }} 
+            style={{ marginTop: '12px', width: '100%' }} 
             onClick={onBack}
           >
-            ← Back
+            ← Back to Home
           </button>
           
           <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', fontWeight: 500, color: 'var(--slate-600)' }}>
-            Already have an account?{' '}
+            Already registered?{' '}
             <a 
               href="#login" 
               style={{ color: 'var(--primary)', fontWeight: 600 }}
@@ -129,7 +174,7 @@ export default function SignupPage({ onNavigate, onBack, addToast }) {
                 onNavigate('login');
               }}
             >
-              Log In
+              Sign In
             </a>
           </div>
         </form>

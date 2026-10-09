@@ -4,8 +4,12 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [gender, setGender] = useState('');
-  const [skills, setSkills] = useState('');
+  const [gender, setGender] = useState('male');
+  const [cgpa, setCgpa] = useState('8.85');
+  const [branch, setBranch] = useState('Computer Science & Engineering');
+  const [graduationYear, setGraduationYear] = useState('2026');
+  const [skills, setSkills] = useState('Java, Spring Boot, React, MySQL, REST APIs, Git');
+  const [resumeUrl, setResumeUrl] = useState('https://drive.google.com/file/d/demo-resume/view');
 
   useEffect(() => {
     if (!user) {
@@ -13,20 +17,25 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
       return;
     }
     
-    // Pre-fill email from session if available
+    // Pre-fill fields from session if available
+    setName(user.username || '');
     if (user.email) {
       setEmail(user.email);
     }
 
     // Check if profile already exists (to edit profile)
     const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
-    const existingProfile = profiles[user.username.toLowerCase()];
+    const existingProfile = profiles[user.email?.toLowerCase()] || profiles[user.username.toLowerCase()];
     if (existingProfile) {
-      setName(existingProfile.name || '');
+      setName(existingProfile.name || user.username || '');
       setEmail(existingProfile.email || user.email || '');
       setMobile(existingProfile.mobile || '');
-      setGender(existingProfile.gender || '');
-      setSkills(existingProfile.skills ? existingProfile.skills.join(', ') : '');
+      setGender(existingProfile.gender || 'male');
+      setCgpa(existingProfile.cgpa || '8.85');
+      setBranch(existingProfile.branch || 'Computer Science & Engineering');
+      setGraduationYear(existingProfile.graduationYear || '2026');
+      setSkills(existingProfile.skills ? existingProfile.skills.join(', ') : 'Java, Spring Boot, React, MySQL');
+      setResumeUrl(existingProfile.resumeUrl || 'https://drive.google.com/file/d/demo-resume/view');
     }
   }, [user, onNavigate]);
 
@@ -37,8 +46,8 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
     const trimmedEmail = email.trim();
     const trimmedMobile = mobile.trim();
     
-    if (!trimmedName || !trimmedEmail || !trimmedMobile || !gender) {
-      addToast('Please fill out all required fields.', 'error');
+    if (!trimmedName || !trimmedEmail || !trimmedMobile || !cgpa || !branch) {
+      addToast('Please complete all required profile fields.', 'error');
       return;
     }
 
@@ -49,16 +58,24 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
 
     // Save in student_profiles map
     const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
+    const emailKey = trimmedEmail.toLowerCase();
     const usernameKey = user.username.toLowerCase();
 
-    profiles[usernameKey] = {
+    const profileData = {
       username: user.username,
       name: trimmedName,
       email: trimmedEmail,
       mobile: trimmedMobile,
       gender: gender,
-      skills: skillsArray
+      cgpa: parseFloat(cgpa) || 8.0,
+      branch: branch,
+      graduationYear: graduationYear,
+      skills: skillsArray,
+      resumeUrl: resumeUrl
     };
+
+    profiles[emailKey] = profileData;
+    profiles[usernameKey] = profileData;
 
     localStorage.setItem('student_profiles', JSON.stringify(profiles));
 
@@ -66,74 +83,129 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
     localStorage.setItem('studentName', trimmedName);
     localStorage.setItem('studentEmail', trimmedEmail);
     localStorage.setItem('studentMobile', trimmedMobile);
+    localStorage.setItem('studentCgpa', cgpa);
+    localStorage.setItem('studentBranch', branch);
     localStorage.setItem('gender', gender);
 
-    addToast('Profile completed! Directing to candidate panel...', 'success');
+    addToast('Profile updated successfully! Directing to student portal...', 'success');
 
     setTimeout(() => {
       onNavigate('dashboard');
-    }, 1000);
+    }, 800);
   };
 
   return (
     <div className="container">
-      <div className="container-box glass-card" style={{ maxWidth: '650px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h1 className="accent-title" style={{ fontWeight: 800, marginBottom: '5px' }}>Profile Onboarding</h1>
-          <p style={{ color: 'var(--slate-600)', fontWeight: 500 }}>Complete your candidate profile to access matching streams</p>
+      <div className="container-box" style={{ maxWidth: '680px', margin: '0 auto', padding: '36px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <h1 className="accent-title" style={{ fontWeight: 800, marginBottom: '6px', fontSize: '26px' }}>
+            Academic Profile & Onboarding
+          </h1>
+          <p style={{ color: 'var(--slate-500)', fontSize: '14px' }}>
+            Complete your academic details to unlock matched placement opportunities and company drives.
+          </p>
         </div>
 
         <form onSubmit={handleProfileSubmit}>
-          <div className="form-group">
-            <label htmlFor="studentName">Full Name:</label>
-            <input 
-              type="text" 
-              id="studentName" 
-              placeholder="e.g. Guru Prasad" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required 
-            />
+          <div className="grid-2" style={{ gap: '14px' }}>
+            <div className="form-group">
+              <label htmlFor="studentName">Full Name:</label>
+              <input 
+                type="text" 
+                id="studentName" 
+                placeholder="e.g. Guru Prasad" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required 
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="studentEmail">Academic Email:</label>
+              <input 
+                type="email" 
+                id="studentEmail" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required 
+              />
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="studentEmail">Contact Email:</label>
-            <input 
-              type="email" 
-              id="studentEmail" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required 
-            />
-            <small style={{ color: 'var(--slate-600)', fontSize: '12px', marginTop: '4px' }}>Used by recruiters to contact you.</small>
+          <div className="grid-2" style={{ gap: '14px' }}>
+            <div className="form-group">
+              <label htmlFor="studentMobile">Mobile Number:</label>
+              <input 
+                type="tel" 
+                id="studentMobile" 
+                placeholder="e.g. +91 98765 43210" 
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+                required 
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="gender">Gender:</label>
+              <select 
+                id="gender" 
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                required
+              >
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="studentMobile">Mobile Number:</label>
-            <input 
-              type="tel" 
-              id="studentMobile" 
-              placeholder="e.g. +91 98765 43210" 
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
-              required 
-              pattern="[0-9+\s\-]{10,15}"
-            />
-          </div>
+          <div className="grid-3" style={{ gap: '12px' }}>
+            <div className="form-group">
+              <label htmlFor="cgpa">Cumulative CGPA:</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                id="cgpa" 
+                min="0" 
+                max="10" 
+                value={cgpa}
+                onChange={(e) => setCgpa(e.target.value)}
+                required 
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="gender">Gender:</label>
-            <select 
-              id="gender" 
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-              required
-            >
-              <option value="" disabled>Select your gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
+            <div className="form-group">
+              <label htmlFor="branch">Department / Branch:</label>
+              <select 
+                id="branch" 
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+                required
+              >
+                <option value="Computer Science & Engineering">Computer Science & Engg.</option>
+                <option value="Information Technology">Information Technology</option>
+                <option value="Electronics & Communication">Electronics & Comm.</option>
+                <option value="Electrical Engineering">Electrical Engineering</option>
+                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                <option value="Bio-Technology & Life Sciences">Bio-Technology</option>
+                <option value="Healthcare Informatics">Healthcare Informatics</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="graduationYear">Graduation Year:</label>
+              <select 
+                id="graduationYear" 
+                value={graduationYear}
+                onChange={(e) => setGraduationYear(e.target.value)}
+                required
+              >
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
           </div>
 
           <div className="form-group">
@@ -141,22 +213,35 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
             <input 
               type="text" 
               id="studentSkills" 
-              placeholder="e.g. HTML, CSS, JavaScript, React, Java" 
+              placeholder="e.g. Java, Spring Boot, React, SQL, Algorithms" 
               value={skills}
               onChange={(e) => setSkills(e.target.value)}
             />
           </div>
 
-          <div style={{ marginTop: '15px', display: 'flex', gap: '15px' }}>
+          <div className="form-group">
+            <label htmlFor="resumeUrl">Resume / Portfolio Link:</label>
+            <input 
+              type="url" 
+              id="resumeUrl" 
+              placeholder="e.g. https://drive.google.com/file/..." 
+              value={resumeUrl}
+              onChange={(e) => setResumeUrl(e.target.value)}
+            />
+          </div>
+
+          <div style={{ marginTop: '24px', display: 'flex', gap: '14px' }}>
             <button 
               type="button" 
               className="btn-outline" 
               style={{ flex: 1 }} 
               onClick={onBack}
             >
-              ← Back
+              ← Cancel
             </button>
-            <button type="submit" className="btn-primary" style={{ flex: 1 }}>Save Profile & Proceed</button>
+            <button type="submit" className="btn-primary" style={{ flex: 1 }}>
+              Save Profile & Access Drives
+            </button>
           </div>
         </form>
       </div>

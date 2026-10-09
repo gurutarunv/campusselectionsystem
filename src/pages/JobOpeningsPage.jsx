@@ -2,663 +2,372 @@ import React, { useState, useEffect } from 'react';
 
 export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, addToast }) {
   const [studentApps, setStudentApps] = useState([]);
-  
-  // Track selected job position for each card
-  const [selectedPositions, setSelectedPositions] = useState({});
+  const [jobs, setJobs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [studentProfile, setStudentProfile] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-    loadAppliedJobs();
-
-    // Set default selected positions based on stream type
-    if (streamType === 'IT') {
-      setSelectedPositions({
-        'Google-1': 'Software Engineer',
-        'Google-2': 'Data Scientist',
-        'Amazon-1': 'Software Development Engineer',
-        'Amazon-2': 'Cloud Support Engineer'
-      });
-    } else {
-      setSelectedPositions({
-        'Mayo Clinic-1': 'Registered Nurse (RN)',
-        'Mayo Clinic-2': 'Medical Doctor (MD)',
-        'UnitedHealth Group-1': 'Health Information Manager',
-        'UnitedHealth Group-2': 'Clinical Research Coordinator'
-      });
-    }
+    loadStudentAndJobs();
   }, [user, streamType]);
 
-  const loadAppliedJobs = () => {
-    const usernameKey = user.username.toLowerCase();
-    const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
-    const filteredApps = allApplications.filter(
-      (app) => app.studentUsername.toLowerCase() === usernameKey
+  const loadStudentAndJobs = async () => {
+    setIsLoading(true);
+
+    // 1. Load Student Profile
+    if (user) {
+      const usernameKey = user.username.toLowerCase();
+      const emailKey = (user.email || '').toLowerCase();
+      const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
+      const profile = profiles[emailKey] || profiles[usernameKey] || {
+        name: user.username,
+        cgpa: 8.5,
+        branch: 'Computer Science'
+      };
+      setStudentProfile(profile);
+
+      // Load Applied Jobs
+      const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
+      const userApps = allApplications.filter(
+        (app) => (app.studentUsername && app.studentUsername.toLowerCase() === usernameKey) ||
+                 (app.studentEmail && app.studentEmail.toLowerCase() === emailKey)
+      );
+      setStudentApps(userApps);
+    }
+
+    // 2. Try fetching from Backend API
+    try {
+      const response = await fetch(`http://localhost:8080/api/v1/jobs?stream=${streamType}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data && result.data.length > 0) {
+          setJobs(result.data);
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch (err) {
+      // Backend not currently reachable; use rich built-in catalog + recruiter posted jobs
+    }
+
+    // 3. Fallback: Base Catalog + Recruiter Posted Jobs from localStorage
+    const postedJobs = JSON.parse(localStorage.getItem('posted_jobs')) || [];
+    const relevantPosted = postedJobs
+      .filter((pj) => pj.stream === streamType)
+      .map((pj, idx) => ({
+        id: `posted-${idx}`,
+        company: pj.company,
+        title: pj.title,
+        stream: pj.stream,
+        location: 'Bengaluru / Hybrid',
+        salaryPackage: '₹12 - 18 LPA',
+        minCgpa: 7.0,
+        eligibleBranches: 'CS, IT, ECE, EE',
+        description: pj.description,
+        requirements: pj.requirements || ['Java', 'Spring Boot', 'SQL'],
+        openings: '30 Openings',
+        badgeColor: '#2563EB'
+      }));
+
+    const defaultITJobs = [
+      {
+        id: 'it-1',
+        company: 'Google LLC',
+        title: 'Software Development Engineer - Cloud & Infrastructure',
+        stream: 'IT',
+        location: 'Hyderabad / Bengaluru',
+        salaryPackage: '₹22 - 32 LPA',
+        minCgpa: 8.0,
+        eligibleBranches: 'CS, IT, ECE',
+        description: 'Design and deploy scalable distributed microservices, cloud infrastructure components, and performant backend APIs.',
+        requirements: ['Java / C++', 'Data Structures & Algorithms', 'Distributed Systems', 'Spring Boot / Microservices'],
+        openings: '45 Openings',
+        badgeColor: '#4285F4'
+      },
+      {
+        id: 'it-2',
+        company: 'Amazon AWS',
+        title: 'Cloud Support & Backend Systems Engineer',
+        stream: 'IT',
+        location: 'Hyderabad / Chennai',
+        salaryPackage: '₹18 - 26 LPA',
+        minCgpa: 7.5,
+        eligibleBranches: 'CS, IT, ECE, EE',
+        description: 'Build enterprise-grade cloud telemetry tools, AWS Lambda serverless functions, and Java API services.',
+        requirements: ['Java / Python', 'AWS / Cloud Architecture', 'Linux & Networking', 'SQL / NoSQL Databases'],
+        openings: '60 Openings',
+        badgeColor: '#FF9900'
+      },
+      {
+        id: 'it-3',
+        company: 'Microsoft',
+        title: 'Full Stack Java & React Developer',
+        stream: 'IT',
+        location: 'Bengaluru / Noida',
+        salaryPackage: '₹20 - 28 LPA',
+        minCgpa: 7.5,
+        eligibleBranches: 'CS, IT',
+        description: 'Develop full stack web applications integrating secure Spring Boot REST APIs with high-performance React frontends.',
+        requirements: ['Java 17/21', 'Spring Boot & JPA', 'React & TypeScript', 'REST API Design', 'Docker'],
+        openings: '35 Openings',
+        badgeColor: '#00A4EF'
+      },
+      {
+        id: 'it-4',
+        company: 'Infosys Wingspan',
+        title: 'Associate Java Developer & Consultant',
+        stream: 'IT',
+        location: 'Pune / Hyderabad / Mysuru',
+        salaryPackage: '₹9.5 - 14 LPA',
+        minCgpa: 6.5,
+        eligibleBranches: 'All Engineering Branches',
+        description: 'Enterprise consulting and Java application development for global banking and retail clients.',
+        requirements: ['Core Java & OOP', 'Spring Framework', 'MySQL & Hibernate', 'Git Version Control'],
+        openings: '120 Openings',
+        badgeColor: '#007CC3'
+      }
+    ];
+
+    const defaultNonITJobs = [
+      {
+        id: 'nonit-1',
+        company: 'Mayo Clinic Health',
+        title: 'Clinical Research & Healthcare Coordinator',
+        stream: 'NON-IT',
+        location: 'Mumbai / Delhi',
+        salaryPackage: '₹8 - 14 LPA',
+        minCgpa: 6.5,
+        eligibleBranches: 'Bio-Technology, Life Sciences, Pharmacy',
+        description: 'Coordinate clinical trials, manage regulatory compliance, and liaise with healthcare investigators.',
+        requirements: ['Clinical Data Management', 'GCP Compliance', 'Life Sciences Degree', 'Medical Documentation'],
+        openings: '25 Openings',
+        badgeColor: '#059669'
+      },
+      {
+        id: 'nonit-2',
+        company: 'UnitedHealth Group',
+        title: 'Health Systems & Medical Informatics Specialist',
+        stream: 'NON-IT',
+        location: 'Gurugram / Hyderabad',
+        salaryPackage: '₹10 - 16 LPA',
+        minCgpa: 7.0,
+        eligibleBranches: 'Bio-Medical, Health Informatics, Life Sciences',
+        description: 'Analyze electronic health record data, optimize hospital workflows, and manage healthcare operations.',
+        requirements: ['Medical Informatics', 'Healthcare Analytics', 'Regulatory Affairs', 'Communication'],
+        openings: '40 Openings',
+        badgeColor: '#0284C7'
+      },
+      {
+        id: 'nonit-3',
+        company: 'Tata Medical Care',
+        title: 'Operations & Hospital Administration Officer',
+        stream: 'NON-IT',
+        location: 'Kolkata / Mumbai',
+        salaryPackage: '₹7.5 - 12 LPA',
+        minCgpa: 6.0,
+        eligibleBranches: 'Healthcare Management, Bio-Tech, All Graduates',
+        description: 'Supervise daily outpatient and inpatient operational streams, inventory logistics, and patient services.',
+        requirements: ['Hospital Administration', 'Patient Care Operations', 'Vendor Management', 'Inventory Control'],
+        openings: '18 Openings',
+        badgeColor: '#7C3AED'
+      }
+    ];
+
+    const baseJobs = streamType === 'IT' ? defaultITJobs : defaultNonITJobs;
+    setJobs([...relevantPosted, ...baseJobs]);
+    setIsLoading(false);
+  };
+
+  const isApplied = (companyName, jobTitle) => {
+    return studentApps.some(
+      (app) => app.company.toLowerCase() === companyName.toLowerCase() &&
+               app.job.toLowerCase() === jobTitle.toLowerCase()
     );
-    setStudentApps(filteredApps);
   };
 
-  const handlePositionChange = (cardKey, value) => {
-    setSelectedPositions((prev) => ({
-      ...prev,
-      [cardKey]: value
-    }));
-  };
+  const handleApply = (job) => {
+    if (!user) {
+      addToast('Please log in to apply for this position.', 'error');
+      onNavigate('login');
+      return;
+    }
 
-  const handleApply = (company, cardKey) => {
-    const jobPosition = selectedPositions[cardKey];
-    if (!jobPosition) return;
+    if (isApplied(job.company, job.title)) {
+      addToast(`You have already submitted an application for ${job.title} at ${job.company}.`, 'error');
+      return;
+    }
+
+    // Eligibility check
+    const studentCgpa = parseFloat(studentProfile?.cgpa || 8.0);
+    if (studentCgpa < job.minCgpa) {
+      const proceedAnyway = window.confirm(
+        `Note: Your CGPA (${studentCgpa}) is below the recommended minimum requirement (${job.minCgpa}). Would you still like to apply?`
+      );
+      if (!proceedAnyway) return;
+    }
 
     const confirmApply = window.confirm(
-      `Are you sure you want to apply for the "${jobPosition}" position at ${company}?`
+      `Confirm application for:\n• Position: ${job.title}\n• Company: ${job.company}\n• Package: ${job.salaryPackage}`
     );
     if (!confirmApply) return;
 
-    const usernameKey = user.username.toLowerCase();
-    const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
-    const profile = profiles[usernameKey];
-    const studentName = profile ? profile.name : user.username;
-
     const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
-
-    const newApplication = {
+    const newApp = {
       studentUsername: user.username,
-      studentName: studentName,
-      company: company,
-      job: jobPosition,
+      studentEmail: user.email || `${user.username.toLowerCase()}@campus.edu`,
+      studentName: studentProfile?.name || user.username,
+      company: job.company,
+      job: job.title,
       stream: streamType,
       date: new Date().toISOString().split('T')[0],
       status: 'Applied'
     };
 
-    allApplications.push(newApplication);
+    allApplications.push(newApp);
     localStorage.setItem('job_applications', JSON.stringify(allApplications));
 
-    addToast(`Successfully applied to ${company} for ${jobPosition}!`, 'success');
-    
-    // Refresh application states
-    loadAppliedJobs();
+    addToast(`Successfully applied to ${job.company} for ${job.title}!`, 'success');
+    loadStudentAndJobs();
   };
 
-  const isApplied = (company, cardKey) => {
-    const selectedJob = selectedPositions[cardKey];
-    if (!selectedJob) return false;
-
-    return studentApps.some(
-      (app) => 
-        app.company.toLowerCase() === company.toLowerCase() && 
-        app.job.toLowerCase() === selectedJob.toLowerCase()
+  const filteredJobs = jobs.filter((j) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      j.company.toLowerCase().includes(term) ||
+      j.title.toLowerCase().includes(term) ||
+      (j.requirements && j.requirements.some((r) => r.toLowerCase().includes(term)))
     );
-  };
-
-  // Render cards depending on IT / NON-IT
-  const renderJobCards = () => {
-    if (streamType === 'IT') {
-      return (
-        <>
-          {/* Google Card 1 */}
-          <div className="job-card">
-            <div className="job-header">
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <div 
-                  className="company-logo-text" 
-                  style={{ background: 'rgba(66, 133, 244, 0.08)', color: '#4285F4', borderColor: 'rgba(66, 133, 244, 0.15)' }}
-                >
-                  G
-                </div>
-                <div className="job-title-block">
-                  <div className="job-company">Google</div>
-                  <div className="job-title">Technical Infrastructure & Coding</div>
-                </div>
-              </div>
-              <span className="job-openings-badge">500 Openings</span>
-            </div>
-
-            <div className="job-body">
-              <div className="req-title">Qualifications & Tech Stack:</div>
-              <ul className="req-list">
-                <li className="req-tag">Bachelor's in Computer Science</li>
-                <li className="req-tag">Java / Python / C++</li>
-                <li className="req-tag">Agile Methodologies</li>
-                <li className="req-tag">Problem Solving</li>
-              </ul>
-            </div>
-
-            <div className="job-footer">
-              <div className="job-select-group">
-                <label htmlFor="select-google-1">Position:</label>
-                <select 
-                  id="select-google-1" 
-                  value={selectedPositions['Google-1'] || 'Software Engineer'}
-                  onChange={(e) => handlePositionChange('Google-1', e.target.value)}
-                >
-                  <option value="Software Engineer">Software Engineer</option>
-                  <option value="Data Scientist">Data Scientist</option>
-                </select>
-              </div>
-              
-              {isApplied('Google', 'Google-1') ? (
-                <button 
-                  className="btn-primary" 
-                  disabled 
-                  style={{ background: '#10B981', boxShadow: 'none' }}
-                >
-                  ✓ Applied
-                </button>
-              ) : (
-                <button 
-                  className="btn-primary" 
-                  onClick={() => handleApply('Google', 'Google-1')}
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Google Card 2 */}
-          <div className="job-card">
-            <div className="job-header">
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <div 
-                  className="company-logo-text" 
-                  style={{ background: 'rgba(234, 67, 53, 0.08)', color: '#EA4335', borderColor: 'rgba(234, 67, 53, 0.15)' }}
-                >
-                  G
-                </div>
-                <div className="job-title-block">
-                  <div className="job-company">Google</div>
-                  <div className="job-title">Analytics & Intelligence</div>
-                </div>
-              </div>
-              <span 
-                className="job-openings-badge" 
-                style={{ background: 'rgba(234, 67, 53, 0.08)', color: '#EA4335', borderColor: 'rgba(234, 67, 53, 0.15)' }}
-              >
-                200 Openings
-              </span>
-            </div>
-
-            <div className="job-body">
-              <div className="req-title">Qualifications & Tech Stack:</div>
-              <ul className="req-list">
-                <li className="req-tag">Master's in Data Science</li>
-                <li className="req-tag">Machine Learning</li>
-                <li className="req-tag">Python & SQL</li>
-                <li className="req-tag">Analytical Skills</li>
-              </ul>
-            </div>
-
-            <div className="job-footer">
-              <div className="job-select-group">
-                <label htmlFor="select-google-2">Position:</label>
-                <select 
-                  id="select-google-2" 
-                  value={selectedPositions['Google-2'] || 'Data Scientist'}
-                  onChange={(e) => handlePositionChange('Google-2', e.target.value)}
-                >
-                  <option value="Data Scientist">Data Scientist</option>
-                  <option value="Software Engineer">Software Engineer</option>
-                </select>
-              </div>
-              
-              {isApplied('Google', 'Google-2') ? (
-                <button 
-                  className="btn-primary" 
-                  disabled 
-                  style={{ background: '#10B981', boxShadow: 'none' }}
-                >
-                  ✓ Applied
-                </button>
-              ) : (
-                <button 
-                  className="btn-primary" 
-                  onClick={() => handleApply('Google', 'Google-2')}
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Amazon Card 1 */}
-          <div className="job-card">
-            <div className="job-header">
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <div 
-                  className="company-logo-text" 
-                  style={{ background: 'rgba(255, 153, 0, 0.08)', color: '#FF9900', borderColor: 'rgba(255, 153, 0, 0.15)' }}
-                >
-                  A
-                </div>
-                <div className="job-title-block">
-                  <div className="job-company">Amazon</div>
-                  <div className="job-title">Core Retail & AWS Dev</div>
-                </div>
-              </div>
-              <span className="job-openings-badge">1000 Openings</span>
-            </div>
-
-            <div className="job-body">
-              <div className="req-title">Qualifications & Tech Stack:</div>
-              <ul className="req-list">
-                <li className="req-tag">Bachelor's in Computer Science</li>
-                <li className="req-tag">Java / C++ / Python</li>
-                <li className="req-tag">Systems Design</li>
-                <li className="req-tag">Problem Solving</li>
-              </ul>
-            </div>
-
-            <div className="job-footer">
-              <div className="job-select-group">
-                <label htmlFor="select-amazon-1">Position:</label>
-                <select 
-                  id="select-amazon-1" 
-                  value={selectedPositions['Amazon-1'] || 'Software Development Engineer'}
-                  onChange={(e) => handlePositionChange('Amazon-1', e.target.value)}
-                >
-                  <option value="Software Development Engineer">Software Development Engineer</option>
-                  <option value="Cloud Support Engineer">Cloud Support Engineer</option>
-                </select>
-              </div>
-              
-              {isApplied('Amazon', 'Amazon-1') ? (
-                <button 
-                  className="btn-primary" 
-                  disabled 
-                  style={{ background: '#10B981', boxShadow: 'none' }}
-                >
-                  ✓ Applied
-                </button>
-              ) : (
-                <button 
-                  className="btn-primary" 
-                  onClick={() => handleApply('Amazon', 'Amazon-1')}
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Amazon Card 2 */}
-          <div className="job-card">
-            <div className="job-header">
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <div 
-                  className="company-logo-text" 
-                  style={{ background: 'rgba(255, 153, 0, 0.08)', color: '#232F3E', borderColor: 'rgba(255, 153, 0, 0.15)' }}
-                >
-                  A
-                </div>
-                <div className="job-title-block">
-                  <div className="job-company">Amazon</div>
-                  <div className="job-title">AWS Enterprise Support</div>
-                </div>
-              </div>
-              <span 
-                className="job-openings-badge" 
-                style={{ background: 'rgba(35, 47, 62, 0.08)', color: '#232F3E', borderColor: 'rgba(35, 47, 62, 0.15)' }}
-              >
-                300 Openings
-              </span>
-            </div>
-
-            <div className="job-body">
-              <div className="req-title">Qualifications & Tech Stack:</div>
-              <ul className="req-list">
-                <li className="req-tag">Bachelor's in Computer Science</li>
-                <li className="req-tag">AWS or Azure Certified</li>
-                <li className="req-tag">Networking & Security</li>
-                <li className="req-tag">Good Communication</li>
-              </ul>
-            </div>
-
-            <div className="job-footer">
-              <div className="job-select-group">
-                <label htmlFor="select-amazon-2">Position:</label>
-                <select 
-                  id="select-amazon-2" 
-                  value={selectedPositions['Amazon-2'] || 'Cloud Support Engineer'}
-                  onChange={(e) => handlePositionChange('Amazon-2', e.target.value)}
-                >
-                  <option value="Cloud Support Engineer">Cloud Support Engineer</option>
-                  <option value="Software Development Engineer">Software Development Engineer</option>
-                </select>
-              </div>
-              
-              {isApplied('Amazon', 'Amazon-2') ? (
-                <button 
-                  className="btn-primary" 
-                  disabled 
-                  style={{ background: '#10B981', boxShadow: 'none' }}
-                >
-                  ✓ Applied
-                </button>
-              ) : (
-                <button 
-                  className="btn-primary" 
-                  onClick={() => handleApply('Amazon', 'Amazon-2')}
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-          </div>
-        </>
-      );
-    } else {
-      // Non-IT Placements
-      const nonItTheme = {
-        background: 'linear-gradient(135deg, var(--secondary), #ffb27a)',
-        boxShadow: '0 4px 12px rgba(255, 142, 60, 0.2)'
-      };
-
-      return (
-        <>
-          {/* Mayo Clinic Card 1 */}
-          <div className="job-card">
-            <div className="job-header">
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <div 
-                  className="company-logo-text" 
-                  style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10B981', borderColor: 'rgba(16, 185, 129, 0.15)' }}
-                >
-                  M
-                </div>
-                <div className="job-title-block">
-                  <div className="job-company">Mayo Clinic</div>
-                  <div className="job-title">Clinical Nursing & Care</div>
-                </div>
-              </div>
-              <span 
-                className="job-openings-badge" 
-                style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10B981', borderColor: 'rgba(16, 185, 129, 0.15)' }}
-              >
-                500 Openings
-              </span>
-            </div>
-
-            <div className="job-body">
-              <div className="req-title">Qualifications & Tech Stack:</div>
-              <ul className="req-list">
-                <li className="req-tag">Associate's Degree in Nursing</li>
-                <li className="req-tag">Current RN Licensure</li>
-                <li className="req-tag">BLS Certification</li>
-                <li className="req-tag">Good Interpersonal Skills</li>
-              </ul>
-            </div>
-
-            <div className="job-footer">
-              <div className="job-select-group">
-                <label htmlFor="select-mayo-1">Position:</label>
-                <select 
-                  id="select-mayo-1" 
-                  value={selectedPositions['Mayo Clinic-1'] || 'Registered Nurse (RN)'}
-                  onChange={(e) => handlePositionChange('Mayo Clinic-1', e.target.value)}
-                >
-                  <option value="Registered Nurse (RN)">Registered Nurse (RN)</option>
-                  <option value="Medical Doctor (MD)">Medical Doctor (MD)</option>
-                </select>
-              </div>
-              
-              {isApplied('Mayo Clinic', 'Mayo Clinic-1') ? (
-                <button 
-                  className="btn-primary" 
-                  disabled 
-                  style={{ background: '#10B981', boxShadow: 'none' }}
-                >
-                  ✓ Applied
-                </button>
-              ) : (
-                <button 
-                  className="btn-primary" 
-                  style={nonItTheme}
-                  onClick={() => handleApply('Mayo Clinic', 'Mayo Clinic-1')}
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Mayo Clinic Card 2 */}
-          <div className="job-card">
-            <div className="job-header">
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <div 
-                  className="company-logo-text" 
-                  style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#059669', borderColor: 'rgba(16, 185, 129, 0.15)' }}
-                >
-                  M
-                </div>
-                <div className="job-title-block">
-                  <div className="job-company">Mayo Clinic</div>
-                  <div className="job-title">Physician & Diagnostics</div>
-                </div>
-              </div>
-              <span 
-                className="job-openings-badge" 
-                style={{ background: 'rgba(5, 150, 105, 0.08)', color: '#059669', borderColor: 'rgba(5, 150, 105, 0.15)' }}
-              >
-                200 Openings
-              </span>
-            </div>
-
-            <div className="job-body">
-              <div className="req-title">Qualifications & Tech Stack:</div>
-              <ul className="req-list">
-                <li className="req-tag">M.D. or D.O. Degree</li>
-                <li className="req-tag">Residency Completed</li>
-                <li className="req-tag">Active Medical License</li>
-                <li className="req-tag">Diagnostic Skills</li>
-              </ul>
-            </div>
-
-            <div className="job-footer">
-              <div className="job-select-group">
-                <label htmlFor="select-mayo-2">Position:</label>
-                <select 
-                  id="select-mayo-2" 
-                  value={selectedPositions['Mayo Clinic-2'] || 'Medical Doctor (MD)'}
-                  onChange={(e) => handlePositionChange('Mayo Clinic-2', e.target.value)}
-                >
-                  <option value="Medical Doctor (MD)">Medical Doctor (MD)</option>
-                  <option value="Registered Nurse (RN)">Registered Nurse (RN)</option>
-                </select>
-              </div>
-              
-              {isApplied('Mayo Clinic', 'Mayo Clinic-2') ? (
-                <button 
-                  className="btn-primary" 
-                  disabled 
-                  style={{ background: '#10B981', boxShadow: 'none' }}
-                >
-                  ✓ Applied
-                </button>
-              ) : (
-                <button 
-                  className="btn-primary" 
-                  style={nonItTheme}
-                  onClick={() => handleApply('Mayo Clinic', 'Mayo Clinic-2')}
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* UnitedHealth Group Card 1 */}
-          <div className="job-card">
-            <div className="job-header">
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <div 
-                  className="company-logo-text" 
-                  style={{ background: 'rgba(30, 60, 114, 0.08)', color: '#1e3c72', borderColor: 'rgba(30, 60, 114, 0.15)' }}
-                >
-                  U
-                </div>
-                <div className="job-title-block">
-                  <div className="job-company">UnitedHealth Group</div>
-                  <div className="job-title">Health Administration</div>
-                </div>
-              </div>
-              <span 
-                className="job-openings-badge" 
-                style={{ background: 'rgba(30, 60, 114, 0.08)', color: '#1e3c72', borderColor: 'rgba(30, 60, 114, 0.15)' }}
-              >
-                100 Openings
-              </span>
-            </div>
-
-            <div className="job-body">
-              <div className="req-title">Qualifications & Tech Stack:</div>
-              <ul className="req-list">
-                <li className="req-tag">Bachelor's in Health Management</li>
-                <li className="req-tag">RHIA or RHIT Certification</li>
-                <li className="req-tag">EHR Database Experience</li>
-                <li className="req-tag">Organizational Skills</li>
-              </ul>
-            </div>
-
-            <div className="job-footer">
-              <div className="job-select-group">
-                <label htmlFor="select-uhg-1">Position:</label>
-                <select 
-                  id="select-uhg-1" 
-                  value={selectedPositions['UnitedHealth Group-1'] || 'Health Information Manager'}
-                  onChange={(e) => handlePositionChange('UnitedHealth Group-1', e.target.value)}
-                >
-                  <option value="Health Information Manager">Health Information Manager</option>
-                  <option value="Clinical Research Coordinator">Clinical Research Coordinator</option>
-                </select>
-              </div>
-              
-              {isApplied('UnitedHealth Group', 'UnitedHealth Group-1') ? (
-                <button 
-                  className="btn-primary" 
-                  disabled 
-                  style={{ background: '#10B981', boxShadow: 'none' }}
-                >
-                  ✓ Applied
-                </button>
-              ) : (
-                <button 
-                  className="btn-primary" 
-                  style={nonItTheme}
-                  onClick={() => handleApply('UnitedHealth Group', 'UnitedHealth Group-1')}
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* UnitedHealth Group Card 2 */}
-          <div className="job-card">
-            <div className="job-header">
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                <div 
-                  className="company-logo-text" 
-                  style={{ background: 'rgba(30, 60, 114, 0.08)', color: '#2a5298', borderColor: 'rgba(30, 60, 114, 0.15)' }}
-                >
-                  U
-                </div>
-                <div className="job-title-block">
-                  <div className="job-company">UnitedHealth Group</div>
-                  <div className="job-title">Clinical Research & Trials</div>
-                </div>
-              </div>
-              <span 
-                className="job-openings-badge" 
-                style={{ background: 'rgba(42, 82, 152, 0.08)', color: '#2a5298', borderColor: 'rgba(42, 82, 152, 0.15)' }}
-              >
-                50 Openings
-              </span>
-            </div>
-
-            <div className="job-body">
-              <div className="req-title">Qualifications & Tech Stack:</div>
-              <ul className="req-list">
-                <li className="req-tag">Bachelor's in Life Sciences</li>
-                <li className="req-tag">Clinical Trials Experience</li>
-                <li className="req-tag">Knowledge of Medical Protocols</li>
-                <li className="req-tag">Strong Analytical Ability</li>
-              </ul>
-            </div>
-
-            <div className="job-footer">
-              <div className="job-select-group">
-                <label htmlFor="select-uhg-2">Position:</label>
-                <select 
-                  id="select-uhg-2" 
-                  value={selectedPositions['UnitedHealth Group-2'] || 'Clinical Research Coordinator'}
-                  onChange={(e) => handlePositionChange('UnitedHealth Group-2', e.target.value)}
-                >
-                  <option value="Clinical Research Coordinator">Clinical Research Coordinator</option>
-                  <option value="Health Information Manager">Health Information Manager</option>
-                </select>
-              </div>
-              
-              {isApplied('UnitedHealth Group', 'UnitedHealth Group-2') ? (
-                <button 
-                  className="btn-primary" 
-                  disabled 
-                  style={{ background: '#10B981', boxShadow: 'none' }}
-                >
-                  ✓ Applied
-                </button>
-              ) : (
-                <button 
-                  className="btn-primary" 
-                  style={nonItTheme}
-                  onClick={() => handleApply('UnitedHealth Group', 'UnitedHealth Group-2')}
-                >
-                  Apply Now
-                </button>
-              )}
-            </div>
-          </div>
-        </>
-      );
-    }
-  };
+  });
 
   return (
     <div className="container">
-      {/* Breadcrumbs */}
-      <div className="breadcrumb-nav">
-        <a href="#dashboard" onClick={(e) => { e.preventDefault(); onBack(); }}>Dashboard</a>
+      {/* Breadcrumb Navigation */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: '14px', marginBottom: '20px', color: 'var(--slate-500)' }}>
+        <a href="#dashboard" onClick={(e) => { e.preventDefault(); onBack(); }}>← Back to Dashboard</a>
         <span>/</span>
         <span style={{ color: 'var(--primary)', fontWeight: 600 }}>
-          {streamType === 'IT' ? 'IT Placements' : 'Non-IT Placements'}
+          {streamType === 'IT' ? 'Information Technology Placements' : 'Non-IT & Healthcare Placements'}
         </span>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
+      {/* Header & Search Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 
-            className="accent-title" 
-            style={
-              streamType === 'NON-IT' 
-                ? { fontWeight: 800, textAlign: 'left', background: 'linear-gradient(120deg, var(--secondary), #ffb27a)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
-                : { fontWeight: 800, textAlign: 'left' }
-            }
-          >
-            {streamType === 'IT' ? 'IT Placement Openings' : 'Non-IT Placement Openings'}
+          <h1 className="accent-title" style={{ fontWeight: 800, textAlign: 'left', fontSize: '28px' }}>
+            {streamType === 'IT' ? 'IT Placement Opportunities' : 'Non-IT Placement Opportunities'}
           </h1>
-          <p style={{ color: 'var(--text-muted)' }}>
-            {streamType === 'IT' 
-              ? 'Apply to active technical openings matched with 10000 Coders.' 
-              : 'Browse medical and health services roles matching 10000 Coders.'}
+          <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>
+            {streamType === 'IT'
+              ? 'Explore vetted software engineering, cloud architecture, and data roles.'
+              : 'Browse healthcare administration, clinical trials, and life sciences positions.'}
           </p>
         </div>
-        <button className="btn-outline" onClick={onBack}>⬅ Back</button>
+
+        {/* Live Filter / Search Input */}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <input 
+            type="text" 
+            placeholder="🔍 Search role, company, skills..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ padding: '9px 14px', width: '280px', borderRadius: 'var(--border-radius-sm)', border: '1px solid var(--slate-300)', fontSize: '14px' }}
+          />
+          <button className="btn-outline" onClick={onBack}>Back</button>
+        </div>
       </div>
 
       {/* Jobs Grid Container */}
-      <div className="jobs-grid">
-        {renderJobCards()}
-      </div>
+      {isLoading ? (
+        <div style={{ textAlign: 'center', padding: '50px', color: 'var(--slate-500)' }}>
+          Loading active placement drives...
+        </div>
+      ) : filteredJobs.length > 0 ? (
+        <div className="jobs-grid">
+          {filteredJobs.map((job, idx) => {
+            const applied = isApplied(job.company, job.title);
+            const initial = job.company[0].toUpperCase();
+
+            return (
+              <div key={job.id || idx} className="job-card">
+                <div>
+                  <div className="job-header">
+                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                      <div 
+                        className="company-logo-text" 
+                        style={{ 
+                          background: 'var(--primary-light)', 
+                          color: 'var(--primary)', 
+                          borderColor: 'rgba(37, 99, 235, 0.2)' 
+                        }}
+                      >
+                        {initial}
+                      </div>
+                      <div>
+                        <div className="job-company">{job.company}</div>
+                        <div className="job-title" style={{ fontSize: '16px' }}>{job.title}</div>
+                      </div>
+                    </div>
+                    <span className="job-openings-badge">{job.openings || 'Active Drive'}</span>
+                  </div>
+
+                  {/* Metadata Chips: CTC, Location, Min CGPA */}
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', margin: '12px 0', fontSize: '13px' }}>
+                    <span style={{ fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: '6px' }}>
+                      💰 {job.salaryPackage}
+                    </span>
+                    <span style={{ color: 'var(--slate-600)', background: 'var(--slate-100)', padding: '3px 8px', borderRadius: '6px' }}>
+                      📍 {job.location}
+                    </span>
+                    <span style={{ color: 'var(--slate-600)', background: 'var(--slate-100)', padding: '3px 8px', borderRadius: '6px' }}>
+                      🎯 Min CGPA: {job.minCgpa}
+                    </span>
+                  </div>
+
+                  <p style={{ color: 'var(--slate-600)', fontSize: '13.5px', lineHeight: 1.5, marginBottom: '14px' }}>
+                    {job.description}
+                  </p>
+
+                  <div className="job-body">
+                    <div className="req-title">Required Skills & Stack:</div>
+                    <ul className="req-list">
+                      {job.requirements && job.requirements.map((req, rIdx) => (
+                        <li key={rIdx} className="req-tag">{req}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid var(--slate-200)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12.5px', color: 'var(--slate-500)' }}>
+                    Eligible: {job.eligibleBranches || 'All Branches'}
+                  </span>
+                  
+                  {applied ? (
+                    <span className="status-badge applied" style={{ padding: '6px 14px', fontSize: '13px' }}>
+                      ✓ Applied
+                    </span>
+                  ) : (
+                    <button 
+                      className="btn-primary" 
+                      style={{ padding: '8px 18px', fontSize: '13.5px' }}
+                      onClick={() => handleApply(job)}
+                    >
+                      Apply Now
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--white)', borderRadius: 'var(--border-radius-md)', border: '1px solid var(--slate-200)' }}>
+          <div style={{ fontSize: '40px', marginBottom: '10px' }}>🔍</div>
+          <h3 style={{ fontSize: '18px', color: 'var(--slate-800)', marginBottom: '6px' }}>No openings found matching "{searchTerm}"</h3>
+          <p style={{ color: 'var(--slate-500)', fontSize: '14px', marginBottom: '16px' }}>Try searching with different keywords or check back later.</p>
+          <button className="btn-outline" onClick={() => setSearchTerm('')}>Clear Search</button>
+        </div>
+      )}
     </div>
   );
 }

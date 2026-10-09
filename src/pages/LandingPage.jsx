@@ -6,20 +6,27 @@ export default function LandingPage({ onNavigate }) {
     onNavigate('login');
   };
 
+  const handleAdminRedirect = () => {
+    localStorage.setItem('landing_role', 'admin');
+    onNavigate('login');
+  };
+
   return (
     <>
       {/* Hero Section */}
       <div className="container">
         <div className="hero-container">
           
-          {/* Text Content */}
+          {/* Left Hero Text Content */}
           <div style={{ textAlign: 'left' }}>
-            <span className="landing-badge">🔥 Empowering Tech Careers</span>
+            <span className="landing-badge">
+              🎓 Centralized Campus Recruitment Platform
+            </span>
             <h1 className="hero-title">
-              Scale Your Coding Career to <span className="accent-title">New Heights</span>
+              Empowering Students & <span className="accent-title">Recruiters</span> for Career Success
             </h1>
             <p className="hero-subtitle">
-              Accelerate your skills with direct industry mentors, interactive practical placements, and live recruitment tunnels. Join India's leading career portal for candidates and hiring partners.
+              Campus Placement Assistance connects ambitious students, verified recruiters, and placement officers. Experience seamless job discovery, real-time application tracking, automated eligibility matching, and structured interview workflows.
             </p>
             
             <div className="hero-actions">
@@ -27,76 +34,101 @@ export default function LandingPage({ onNavigate }) {
                 className="btn-primary" 
                 onClick={() => onNavigate('login')}
               >
-                Get Started As Student
+                🎓 Student Portal
               </button>
               <button 
                 className="btn-outline" 
                 onClick={handleRecruiterRedirect}
               >
-                Recruiter Tunnel
+                💼 Recruiter Portal
+              </button>
+              <button 
+                className="btn-outline" 
+                onClick={handleAdminRedirect}
+                style={{ borderColor: 'var(--slate-300)' }}
+              >
+                🏛️ Placement Officer
               </button>
             </div>
           </div>
 
-          {/* Graphical Grid Display */}
+          {/* Right Hero KPI Statistics Grid */}
           <div className="stat-badge-grid">
             <div className="stat-badge-item">
-              <div className="stat-val">98%</div>
-              <div className="stat-desc">Placement rate</div>
+              <div className="stat-val">96.4%</div>
+              <div className="stat-desc">Placement Rate</div>
             </div>
             <div className="stat-badge-item">
-              <div className="stat-val">100+</div>
-              <div className="stat-desc">Hiring Partners</div>
+              <div className="stat-val">120+</div>
+              <div className="stat-desc">Corporate Partners</div>
             </div>
             <div className="stat-badge-item">
-              <div className="stat-val">2.5K+</div>
-              <div className="stat-desc">Active Students</div>
+              <div className="stat-val">3,200+</div>
+              <div className="stat-desc">Registered Students</div>
             </div>
             <div className="stat-badge-item">
-              <div className="stat-val">10K+</div>
-              <div className="stat-desc">Alumni Network</div>
+              <div className="stat-val">₹14.5L</div>
+              <div className="stat-desc">Average CTC (IT)</div>
             </div>
           </div>
 
         </div>
       </div>
 
-      {/* Features Section */}
+      {/* Core Platform Features Section */}
       <div className="container feature-section">
-        <h2 style={{ fontSize: '28px', marginBottom: '8px' }}>Built for Real-Time Outcomes</h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '40px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
-          Our professional training infrastructure ensures highly active recruitment files.
+        <h2 style={{ fontSize: '30px', fontWeight: 800, marginBottom: '8px', fontFamily: "'Outfit', sans-serif" }}>
+          Engineered for Enterprise Campus Recruitment
+        </h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '40px', maxWidth: '640px', marginLeft: 'auto', marginRight: 'auto' }}>
+          A secure, multi-role recruitment workflow powered by a modern Java Spring Boot backend and intuitive user experience.
         </p>
         
-        <div className="grid-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
+        <div className="grid-3">
           <div className="feature-card">
-            <div className="feature-icon">💻</div>
-            <h3 style={{ fontSize: '18px', marginBottom: '10px' }}>Vetted Coding Portals</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-              Direct evaluation routes mapped directly to IT and Software Development streams at tech giants.
+            <div className="feature-icon" style={{ background: 'var(--primary-light)', color: 'var(--primary)' }}>
+              💻
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>Stream-Specific Matching</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6 }}>
+              Automated evaluation rules that verify minimum CGPA, departmental eligibility, and required skills for IT and Non-IT career streams.
             </p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">📁</div>
-            <h3 style={{ fontSize: '18px', marginBottom: '10px' }}>Persistent Placements</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-              Instant client-side matching. Submit profiles directly and trace application evaluations in real time.
+            <div className="feature-icon" style={{ background: 'var(--accent-emerald-light)', color: 'var(--accent-emerald)' }}>
+              📊
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>Real-Time Application Lifecycle</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6 }}>
+              Trace candidate progression through verifiable milestones: Applied, Under Review, Shortlisted, Interview Scheduled, and Final Selection.
             </p>
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon">👩‍💼</div>
-            <h3 style={{ fontSize: '18px', marginBottom: '10px' }}>Enterprise Recruiter Tools</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-              Sleek analytics dashboards to filter profiles, post new openings, and shortlist candidates in the browser.
+            <div className="feature-icon" style={{ background: '#ede9fe', color: 'var(--accent-purple)' }}>
+              🛡️
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '10px' }}>Placement Officer Governance</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.6 }}>
+              Centralized administrative dashboard for company verification, placement drive analytics, audit logging, and recruitment reports.
             </p>
           </div>
         </div>
       </div>
 
-      <footer style={{ marginTop: 'auto', backgroundColor: 'var(--white)', borderTop: '1px solid var(--slate-200)', padding: '25px 0', textAlign: 'center', fontSize: '14px', color: 'var(--slate-600)', fontWeight: 500 }}>
-        &copy; 2026 10000 Coders. All rights reserved. Managed with premium orange & white styling.
+      {/* Footer */}
+      <footer style={{ marginTop: 'auto', backgroundColor: 'var(--white)', borderTop: '1px solid var(--slate-200)', padding: '28px 0', textAlign: 'center', fontSize: '14px', color: 'var(--slate-500)', fontWeight: 500 }}>
+        <div className="container" style={{ padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+          <div>
+            &copy; 2026 <strong>Campus Placement Assistance</strong>. Built with Java 21, Spring Boot 3 & React.
+          </div>
+          <div style={{ display: 'flex', gap: '20px' }}>
+            <span style={{ color: 'var(--slate-600)', fontSize: '13px' }}>Spring Security RBAC</span>
+            <span style={{ color: 'var(--slate-600)', fontSize: '13px' }}>REST API v1</span>
+            <span style={{ color: 'var(--slate-600)', fontSize: '13px' }}>MySQL / H2 JPA</span>
+          </div>
+        </div>
       </footer>
     </>
   );

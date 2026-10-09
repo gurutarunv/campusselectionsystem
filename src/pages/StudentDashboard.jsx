@@ -1,40 +1,114 @@
 import React, { useState, useEffect } from 'react';
 
-export default function StudentDashboard({ user, onNavigate, onBack }) {
+export default function StudentDashboard({ user, onNavigate, onBack, addToast }) {
   const [profile, setProfile] = useState(null);
   const [applications, setApplications] = useState([]);
+  const [interviews, setInterviews] = useState([]);
 
   useEffect(() => {
     if (!user) return;
+    loadStudentData();
+  }, [user]);
 
+  const loadStudentData = () => {
     const usernameKey = user.username.toLowerCase();
+    const emailKey = (user.email || '').toLowerCase();
     
     // Load student profile
     const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
-    const currentProfile = profiles[usernameKey];
+    const currentProfile = profiles[emailKey] || profiles[usernameKey];
+    
     if (currentProfile) {
       setProfile(currentProfile);
     } else {
-      // Fallback
       setProfile({
         name: localStorage.getItem('studentName') || user.username,
-        email: localStorage.getItem('studentEmail') || user.email || 'No email',
-        mobile: localStorage.getItem('studentMobile') || 'No mobile',
-        gender: localStorage.getItem('gender') || 'Not specified',
-        skills: []
+        email: localStorage.getItem('studentEmail') || user.email || 'student@campus.edu',
+        mobile: localStorage.getItem('studentMobile') || '+91 98765 43210',
+        gender: localStorage.getItem('gender') || 'Male',
+        cgpa: localStorage.getItem('studentCgpa') || '8.85',
+        branch: localStorage.getItem('studentBranch') || 'Computer Science & Engineering',
+        graduationYear: '2026',
+        skills: ['Java', 'Spring Boot', 'React', 'SQL', 'Data Structures']
       });
     }
 
     // Load applications list
     const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
     const filteredApps = allApplications.filter(
-      (app) => app.studentUsername.toLowerCase() === usernameKey
+      (app) => (app.studentUsername && app.studentUsername.toLowerCase() === usernameKey) ||
+               (app.studentEmail && app.studentEmail.toLowerCase() === emailKey) ||
+               app.studentName === user.username
     );
-    setApplications(filteredApps);
-  }, [user]);
+
+    // If no applications exist in localStorage yet, provide realistic sample applications
+    if (filteredApps.length === 0) {
+      const defaultApps = [
+        {
+          studentUsername: user.username,
+          studentEmail: user.email || 'student@campus.edu',
+          studentName: user.username,
+          company: 'Google LLC',
+          job: 'Software Development Engineer - Cloud & Infrastructure',
+          stream: 'IT',
+          date: '2026-10-02',
+          status: 'Shortlisted'
+        },
+        {
+          studentUsername: user.username,
+          studentEmail: user.email || 'student@campus.edu',
+          studentName: user.username,
+          company: 'Amazon AWS',
+          job: 'Cloud Support & Backend Systems Engineer',
+          stream: 'IT',
+          date: '2026-10-05',
+          status: 'Under Review'
+        }
+      ];
+      setApplications(defaultApps);
+      localStorage.setItem('job_applications', JSON.stringify(defaultApps));
+    } else {
+      setApplications(filteredApps);
+    }
+
+    // Scheduled Interviews
+    const scheduledInterviews = [
+      {
+        company: 'Google LLC',
+        round: 'Round 1: DSA & Core Java Technical Interview',
+        time: 'Tomorrow, 10:30 AM IST',
+        mode: 'Google Meet (Virtual)',
+        link: 'https://meet.google.com/cpa-demo-inte'
+      }
+    ];
+    setInterviews(scheduledInterviews);
+  };
+
+  const handleWithdrawApplication = (index) => {
+    const targetApp = applications[index];
+    const confirmWithdraw = window.confirm(
+      `Are you sure you want to withdraw your application for "${targetApp.job}" at ${targetApp.company}?`
+    );
+    if (!confirmWithdraw) return;
+
+    const updatedApps = [...applications];
+    updatedApps[index].status = 'Withdrawn';
+    setApplications(updatedApps);
+
+    // Save back to localStorage
+    const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
+    const updatedGlobal = allApplications.map((app) =>
+      app.company === targetApp.company && app.job === targetApp.job ? { ...app, status: 'Withdrawn' } : app
+    );
+    localStorage.setItem('job_applications', JSON.stringify(updatedGlobal));
+
+    if (addToast) {
+      addToast(`Application to ${targetApp.company} has been withdrawn.`, 'success');
+    }
+  };
 
   if (!user || !profile) {
-    return <div className="container" style={{ textAlign: 'center', marginTop: '50px' }}>Loading Portal...</div>;
+    return <div className="container" style={{ textAlign: 'center', marginTop: '50px' }}>Loading Placement Dashboard...</div>;
   }
 
   const initials = profile.name
@@ -48,104 +122,156 @@ export default function StudentDashboard({ user, onNavigate, onBack }) {
       <div className="profile-panel">
         <div className="profile-avatar">{initials || 'S'}</div>
         <div className="profile-details" style={{ flex: 1 }}>
-          <div className="profile-name">{profile.name}</div>
-          <div className="profile-meta">
-            📧 {profile.email} &nbsp;|&nbsp; 📱 {profile.mobile} &nbsp;|&nbsp; ⚧ {profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div className="profile-name">{profile.name}</div>
+            <span className="user-role">Student / Candidate</span>
           </div>
-          <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+
+          <div className="profile-meta" style={{ marginTop: '6px' }}>
+            📧 {profile.email} &nbsp;|&nbsp; 📱 {profile.mobile} &nbsp;|&nbsp; 🎓 {profile.branch || 'Engineering'} &nbsp;|&nbsp; 🎯 CGPA: <strong>{profile.cgpa || '8.85'}</strong>
+          </div>
+
+          {/* Skill Badges */}
+          <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {profile.skills && profile.skills.length > 0 ? (
               profile.skills.map((skill, index) => (
                 <span 
                   key={index}
                   className="req-tag" 
                   style={{
-                    background: 'rgba(255, 107, 0, 0.08)',
+                    background: 'var(--primary-light)',
                     color: 'var(--primary)',
-                    border: '1px solid rgba(255, 107, 0, 0.15)',
-                    fontSize: '12px',
-                    padding: '3px 10px'
+                    borderColor: 'rgba(37, 99, 235, 0.2)',
+                    fontSize: '12px'
                   }}
                 >
                   {skill}
                 </span>
               ))
             ) : (
-              <span style={{ color: 'var(--slate-600)', fontSize: '13px', fontStyle: 'italic' }}>
+              <span style={{ color: 'var(--slate-500)', fontSize: '13px', fontStyle: 'italic' }}>
                 No skills specified yet.
               </span>
             )}
           </div>
         </div>
+
         <div>
           <button 
             className="btn-outline" 
             style={{ padding: '8px 16px', fontSize: '14px' }}
             onClick={() => onNavigate('onboarding')}
           >
-            Edit Profile
+            ✏️ Edit Academic Profile
           </button>
         </div>
       </div>
 
+      {/* Upcoming Scheduled Interviews Alert Card */}
+      {interviews.length > 0 && (
+        <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 'var(--border-radius-md)', padding: '20px 24px', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>📅</span>
+                <span style={{ fontWeight: 800, color: '#5b21b6', fontSize: '16px' }}>Upcoming Interview Scheduled</span>
+              </div>
+              <div style={{ fontSize: '14px', color: '#6d28d9', marginTop: '4px' }}>
+                <strong>{interviews[0].company}</strong> • {interviews[0].round}
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--slate-600)', marginTop: '2px' }}>
+                🕒 {interviews[0].time} &nbsp;|&nbsp; 📍 {interviews[0].mode}
+              </div>
+            </div>
+            <div>
+              <a 
+                href={interviews[0].link} 
+                target="_blank" 
+                rel="noreferrer"
+                className="btn-primary" 
+                style={{ background: '#7c3aed', padding: '8px 16px', fontSize: '13.5px' }}
+              >
+                Join Video Meeting
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stream Selection Cards */}
-      <h2 style={{ fontSize: '24px', textAlign: 'left', marginBottom: '5px' }}>Select Job Stream</h2>
+      <h2 style={{ fontSize: '22px', fontWeight: 800, textAlign: 'left', marginBottom: '6px', fontFamily: "'Outfit', sans-serif" }}>
+        Placement Streams & Job Drives
+      </h2>
       <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
-        Explore placements and company openings matching your stream.
+        Discover campus placement drives matched with your academic credentials.
       </p>
       
       <div className="grid-2">
         {/* IT STREAM CARD */}
         <div className="stream-card" onClick={() => onNavigate('it-placements')}>
-          <div className="stream-icon">💻</div>
-          <h2>IT Opportunities</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-            Explore software engineering, web development, cloud support, data science, and security roles at top tech companies.
-          </p>
-          <button className="btn-primary" style={{ marginTop: '10px', width: '100%' }}>View IT Openings</button>
+          <div>
+            <div className="stream-icon">💻</div>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--slate-900)' }}>IT & Software Roles</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '8px 0 16px 0', lineHeight: 1.5 }}>
+              Explore Software Development, Cloud Architecture, DevOps, Data Science, and Full Stack Java engineering positions.
+            </p>
+          </div>
+          <button className="btn-primary" style={{ marginTop: '10px', width: '100%' }}>
+            Browse IT Openings →
+          </button>
         </div>
 
         {/* NON-IT STREAM CARD */}
         <div className="stream-card" onClick={() => onNavigate('non-it-placements')}>
-          <div className="stream-icon">🩺</div>
-          <h2>Non-IT Opportunities</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-            Browse registered nurse positions, health administrators, clinical coordinators, and life science careers.
-          </p>
+          <div>
+            <div className="stream-icon">🩺</div>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--slate-900)' }}>Non-IT & Healthcare Roles</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '8px 0 16px 0', lineHeight: 1.5 }}>
+              Browse Clinical Research Coordinators, Healthcare Informatics, Operations, and Life Science career opportunities.
+            </p>
+          </div>
           <button 
             className="btn-primary" 
             style={{ 
               marginTop: '10px', 
               width: '100%', 
-              background: 'linear-gradient(135deg, var(--secondary), #ffb27a)',
-              boxShadow: '0 4px 12px rgba(255, 142, 60, 0.2)' 
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              boxShadow: '0 4px 14px rgba(5, 150, 105, 0.25)' 
             }}
           >
-            View Non-IT Openings
+            Browse Non-IT Openings →
           </button>
         </div>
       </div>
 
       {/* Applied Jobs Panel */}
-      <div style={{ marginTop: '50px' }}>
-        <h2 style={{ fontSize: '24px', textAlign: 'left', marginBottom: '5px' }}>Your Job Applications</h2>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Track the status of your sent placement files.</p>
+      <div style={{ marginTop: '48px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <h2 style={{ fontSize: '22px', fontWeight: 800, textAlign: 'left', fontFamily: "'Outfit', sans-serif" }}>
+              My Active Applications
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Track the real-time status and recruitment lifecycle of your submitted applications.</p>
+          </div>
+        </div>
         
         <div className="premium-table-wrapper">
           <table className="premium-table">
             <thead>
               <tr>
                 <th>Company</th>
-                <th>Job Position</th>
+                <th>Position Title</th>
                 <th>Stream</th>
                 <th>Applied Date</th>
-                <th>Status</th>
+                <th>Recruitment Stage</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {applications.length > 0 ? (
                 applications.map((app, index) => (
                   <tr key={index}>
-                    <td style={{ fontWeight: 600, color: 'var(--slate-900)' }}>{app.company}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--slate-900)' }}>{app.company}</td>
                     <td>{app.job}</td>
                     <td>
                       <span className="req-tag" style={{ fontSize: '11px', padding: '2px 8px' }}>
@@ -154,16 +280,27 @@ export default function StudentDashboard({ user, onNavigate, onBack }) {
                     </td>
                     <td style={{ color: 'var(--slate-600)' }}>{app.date}</td>
                     <td>
-                      <span className={`status-badge ${app.status.toLowerCase().replace(' ', '-')}`}>
+                      <span className={`status-badge ${app.status.toLowerCase().replace(/\s+/g, '-')}`}>
                         {app.status}
                       </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {app.status !== 'Withdrawn' && app.status !== 'Selected' && (
+                        <button 
+                          className="btn-danger" 
+                          style={{ padding: '3px 8px', fontSize: '12px' }}
+                          onClick={() => handleWithdrawApplication(index)}
+                        >
+                          Withdraw
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', color: 'var(--slate-600)', padding: '30px' }}>
-                    You haven't applied to any job openings yet. Click one of the streams above to search and apply!
+                  <td colSpan="6" style={{ textAlign: 'center', color: 'var(--slate-500)', padding: '36px' }}>
+                    You haven't submitted any job applications yet. Click one of the placement stream cards above to explore opportunities and apply!
                   </td>
                 </tr>
               )}
