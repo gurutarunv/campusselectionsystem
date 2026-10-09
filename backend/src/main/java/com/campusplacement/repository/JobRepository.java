@@ -12,10 +12,17 @@ import java.util.List;
 
 @Repository
 public interface JobRepository extends JpaRepository<Job, Long> {
-    List<Job> findByStatus(JobStatus status);
-    List<Job> findByStreamAndStatus(JobStream stream, JobStatus status);
+    
+    @Query("SELECT j FROM Job j JOIN FETCH j.company WHERE j.status = :status")
+    List<Job> findByStatus(@Param("status") JobStatus status);
+
+    @Query("SELECT j FROM Job j JOIN FETCH j.company WHERE j.stream = :stream AND j.status = :status")
+    List<Job> findByStreamAndStatus(@Param("stream") JobStream stream, @Param("status") JobStatus status);
+
     List<Job> findByCompany(Company company);
-    List<Job> findByCompanyId(Long companyId);
+
+    @Query("SELECT j FROM Job j JOIN FETCH j.company WHERE j.company.id = :companyId")
+    List<Job> findByCompanyId(@Param("companyId") Long companyId);
 
     @Query("SELECT j FROM Job j JOIN FETCH j.company WHERE j.status = :status AND " +
            "(LOWER(j.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

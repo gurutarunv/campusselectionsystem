@@ -43,7 +43,6 @@ spring:
 
   jpa:
     open-in-view: false
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
     show-sql: true
@@ -75,7 +74,6 @@ spring:
 
   jpa:
     open-in-view: false
-    database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: update
     show-sql: false
