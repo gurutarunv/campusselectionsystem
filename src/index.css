@@ -536,6 +536,34 @@ a:hover {
     box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+.password-input-wrapper input {
+    padding-right: 42px !important;
+}
+.password-toggle-btn {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--slate-500);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 6px;
+    transition: var(--transition-fast);
+}
+.password-toggle-btn:hover {
+    color: var(--primary);
+    background: var(--slate-100);
+}
+
 /* ===== Stream Selection Cards ===== */
 .stream-card {
     background: var(--white);
