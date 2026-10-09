@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { jobsApi, applicationsApi, studentApi } from '../services/api';
 
 export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, addToast }) {
   const [studentApps, setStudentApps] = useState([]);
@@ -14,39 +15,73 @@ export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, 
   const loadStudentAndJobs = async () => {
     setIsLoading(true);
 
-    // 1. Load Student Profile
+    // 1. Load Student Profile & Applications
     if (user) {
-      const usernameKey = user.username.toLowerCase();
+      const usernameKey = (user.username || '').toLowerCase();
       const emailKey = (user.email || '').toLowerCase();
-      const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
-      const profile = profiles[emailKey] || profiles[usernameKey] || {
-        name: user.username,
-        cgpa: 8.5,
-        branch: 'Computer Science'
-      };
-      setStudentProfile(profile);
 
-      // Load Applied Jobs
-      const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
-      const userApps = allApplications.filter(
-        (app) => (app.studentUsername && app.studentUsername.toLowerCase() === usernameKey) ||
-                 (app.studentEmail && app.studentEmail.toLowerCase() === emailKey)
-      );
-      setStudentApps(userApps);
+      // Attempt live profile from Spring Boot backend
+      try {
+        const profileRes = await studentApi.getProfile();
+        if (profileRes?.data) {
+          setStudentProfile(profileRes.data);
+        }
+      } catch {
+        // Fallback to localStorage profile
+        const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
+        const profile = profiles[emailKey] || profiles[usernameKey] || {
+          name: user.username,
+          cgpa: 8.5,
+          branch: 'Computer Science'
+        };
+        setStudentProfile(profile);
+      }
+
+      // Attempt live student applications
+      try {
+        const appsRes = await studentApi.getMyApplications();
+        if (appsRes?.data && appsRes.data.length > 0) {
+          const mappedApps = appsRes.data.map(app => ({
+            id: app.id,
+            jobId: app.jobId,
+            company: app.companyName,
+            job: app.jobTitle,
+            stream: app.stream,
+            status: app.status
+          }));
+          setStudentApps(mappedApps);
+        } else {
+          loadLocalApplications(usernameKey, emailKey);
+        }
+      } catch {
+        loadLocalApplications(usernameKey, emailKey);
+      }
     }
 
     // 2. Try fetching from Backend API
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/jobs?stream=${streamType}`);
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data && result.data.length > 0) {
-          setJobs(result.data);
-          setIsLoading(false);
-          return;
-        }
+      const backendStream = streamType === 'NON-IT' ? 'NON_IT' : 'IT';
+      const response = await jobsApi.getJobs(backendStream);
+      if (response?.data && response.data.length > 0) {
+        const mappedJobs = response.data.map(j => ({
+          id: j.id,
+          company: j.companyName,
+          title: j.title,
+          stream: j.stream === 'NON_IT' ? 'NON-IT' : 'IT',
+          location: j.location,
+          salaryPackage: j.salaryPackage,
+          minCgpa: j.minCgpa ? parseFloat(j.minCgpa) : 7.0,
+          eligibleBranches: j.eligibleBranches || 'All Branches',
+          description: j.description,
+          requirements: j.requiredSkills ? j.requiredSkills.split(',').map(s => s.trim()) : ['General'],
+          openings: 'Active Drive',
+          badgeColor: '#2563EB'
+        }));
+        setJobs(mappedJobs);
+        setIsLoading(false);
+        return;
       }
-    } catch (err) {
+    } catch {
       // Backend not currently reachable; use rich built-in catalog + recruiter posted jobs
     }
 
@@ -59,12 +94,12 @@ export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, 
         company: pj.company,
         title: pj.title,
         stream: pj.stream,
-        location: 'Bengaluru / Hybrid',
-        salaryPackage: '₹12 - 18 LPA',
-        minCgpa: 7.0,
-        eligibleBranches: 'CS, IT, ECE, EE',
+        location: pj.location || 'Bengaluru / Hybrid',
+        salaryPackage: pj.salaryPackage || '₹12 - 18 LPA',
+        minCgpa: parseFloat(pj.minCgpa) || 7.0,
+        eligibleBranches: pj.eligibleBranches || 'CS, IT, ECE, EE',
         description: pj.description,
-        requirements: pj.requirements || ['Java', 'Spring Boot', 'SQL'],
+        requirements: Array.isArray(pj.requirements) ? pj.requirements : (pj.requirements ? pj.requirements.split(',') : ['Java', 'Spring Boot', 'SQL']),
         openings: '30 Openings',
         badgeColor: '#2563EB'
       }));
@@ -178,21 +213,31 @@ export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, 
     setIsLoading(false);
   };
 
-  const isApplied = (companyName, jobTitle) => {
+  const loadLocalApplications = (usernameKey, emailKey) => {
+    const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
+    const userApps = allApplications.filter(
+      (app) => (app.studentUsername && app.studentUsername.toLowerCase() === usernameKey) ||
+               (app.studentEmail && app.studentEmail.toLowerCase() === emailKey)
+    );
+    setStudentApps(userApps);
+  };
+
+  const isApplied = (companyName, jobTitle, jobId) => {
     return studentApps.some(
-      (app) => app.company.toLowerCase() === companyName.toLowerCase() &&
-               app.job.toLowerCase() === jobTitle.toLowerCase()
+      (app) => (jobId && app.jobId === jobId) ||
+               (app.company && app.company.toLowerCase() === companyName.toLowerCase() &&
+                app.job && app.job.toLowerCase() === jobTitle.toLowerCase())
     );
   };
 
-  const handleApply = (job) => {
+  const handleApply = async (job) => {
     if (!user) {
       addToast('Please log in to apply for this position.', 'error');
       onNavigate('login');
       return;
     }
 
-    if (isApplied(job.company, job.title)) {
+    if (isApplied(job.company, job.title, job.id)) {
       addToast(`You have already submitted an application for ${job.title} at ${job.company}.`, 'error');
       return;
     }
@@ -211,8 +256,24 @@ export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, 
     );
     if (!confirmApply) return;
 
+    // If this is a numeric backend job ID, submit via Spring Boot REST API
+    if (typeof job.id === 'number') {
+      try {
+        const res = await applicationsApi.applyForJob(job.id, `Application submitted for ${job.title}`);
+        if (res?.data) {
+          addToast(`Application accepted by Spring Boot server for ${job.company}!`, 'success');
+          loadStudentAndJobs();
+          return;
+        }
+      } catch (err) {
+        addToast(`Backend Application Note: ${err.message}`, 'warning');
+      }
+    }
+
+    // Local / Offline fallback persistence
     const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
     const newApp = {
+      jobId: job.id,
       studentUsername: user.username,
       studentEmail: user.email || `${user.username.toLowerCase()}@campus.edu`,
       studentName: studentProfile?.name || user.username,
@@ -284,8 +345,8 @@ export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, 
       ) : filteredJobs.length > 0 ? (
         <div className="jobs-grid">
           {filteredJobs.map((job, idx) => {
-            const applied = isApplied(job.company, job.title);
-            const initial = job.company[0].toUpperCase();
+            const applied = isApplied(job.company, job.title, job.id);
+            const initial = job.company ? job.company[0].toUpperCase() : 'C';
 
             return (
               <div key={job.id || idx} className="job-card">

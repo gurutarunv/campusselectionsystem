@@ -48,22 +48,22 @@ public class DataInitializationService implements CommandLineRunner {
             return; // Already initialized
         }
 
-        // 1. Create Admin
-        User admin = new User("admin@campus.edu", passwordEncoder.encode("password123"), Role.ROLE_ADMIN);
+        // 1. Create Placement Admin
+        User admin = new User("admin@campus.edu", passwordEncoder.encode("Admin@123"), Role.ROLE_ADMIN);
         userRepository.save(admin);
 
-        // 2. Create Recruiters
-        User recruiterGoogle = new User("recruiter@google.com", passwordEncoder.encode("password123"), Role.ROLE_RECRUITER);
+        // 2. Create Corporate Recruiters
+        User recruiterGoogle = new User("recruiter@google.com", passwordEncoder.encode("Recruiter@123"), Role.ROLE_RECRUITER);
         userRepository.save(recruiterGoogle);
 
-        User recruiterAmazon = new User("recruiter@amazon.com", passwordEncoder.encode("password123"), Role.ROLE_RECRUITER);
+        User recruiterAmazon = new User("recruiter@amazon.com", passwordEncoder.encode("Recruiter@123"), Role.ROLE_RECRUITER);
         userRepository.save(recruiterAmazon);
 
         // 3. Create Students
-        User student1 = new User("student@campus.edu", passwordEncoder.encode("password123"), Role.ROLE_STUDENT);
+        User student1 = new User("student@campus.edu", passwordEncoder.encode("Student@123"), Role.ROLE_STUDENT);
         userRepository.save(student1);
 
-        User student2 = new User("ananya.s@campus.edu", passwordEncoder.encode("password123"), Role.ROLE_STUDENT);
+        User student2 = new User("ananya.s@campus.edu", passwordEncoder.encode("Student@123"), Role.ROLE_STUDENT);
         userRepository.save(student2);
 
         // 4. Create Student Profiles
@@ -92,7 +92,7 @@ public class DataInitializationService implements CommandLineRunner {
         );
         studentProfileRepository.save(profile2);
 
-        // 5. Create Companies
+        // 5. Create Verified Companies
         Company google = new Company(
                 recruiterGoogle,
                 "Google LLC",
@@ -126,7 +126,7 @@ public class DataInitializationService implements CommandLineRunner {
         );
         companyRepository.save(mayo);
 
-        // 6. Create Jobs
+        // 6. Create Job Postings
         Job job1 = new Job(
                 google,
                 "Software Development Engineer - Cloud & Infrastructure",

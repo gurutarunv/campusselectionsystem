@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Logo from '../components/Logo';
+import { authApi } from '../services/api';
 
 export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser }) {
   const [role, setRole] = useState('student');
@@ -7,7 +8,6 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if landing role override was passed
   useEffect(() => {
     const landingRole = localStorage.getItem('landing_role');
     if (landingRole) {
@@ -15,16 +15,16 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
       localStorage.removeItem('landing_role');
     }
 
-    // Seed default demo accounts to localStorage if empty
+    // Seed default demo accounts in client storage for offline compatibility
     let db = JSON.parse(localStorage.getItem('user_db')) || {};
     if (!db['student@campus.edu'] && !db['student']) {
       db['student@campus.edu'] = {
         role: 'student',
         username: 'Guru Prasad',
         email: 'student@campus.edu',
-        password: 'password123',
+        password: 'Student@123',
         cgpa: '8.85',
-        branch: 'Computer Science',
+        branch: 'Computer Science & Engineering',
         graduationYear: '2026',
         skills: ['Java', 'Spring Boot', 'React', 'MySQL', 'REST API']
       };
@@ -32,7 +32,7 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
         role: 'company',
         username: 'Google Careers',
         email: 'recruiter@google.com',
-        password: 'password123',
+        password: 'Recruiter@123',
         companyName: 'Google LLC',
         industry: 'Software & Cloud'
       };
@@ -40,9 +40,8 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
         role: 'admin',
         username: 'Dean of Placements',
         email: 'admin@campus.edu',
-        password: 'password123'
+        password: 'Admin@123'
       };
-      // Backwards compatibility mappings
       db['student'] = db['student@campus.edu'];
       db['company'] = db['recruiter@google.com'];
       db['admin'] = db['admin@campus.edu'];
@@ -55,13 +54,13 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
     setRole(demoRole);
     if (demoRole === 'student') {
       setUsernameOrEmail('student@campus.edu');
-      setPassword('password123');
+      setPassword('Student@123');
     } else if (demoRole === 'company') {
       setUsernameOrEmail('recruiter@google.com');
-      setPassword('password123');
+      setPassword('Recruiter@123');
     } else if (demoRole === 'admin') {
       setUsernameOrEmail('admin@campus.edu');
-      setPassword('password123');
+      setPassword('Admin@123');
     }
   };
 
@@ -76,43 +75,40 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
 
     setIsLoading(true);
 
-    // Try authenticating against real backend API first if available
+    // 1. Try real Spring Boot backend API first
     try {
-      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmedInput, password: password })
-      });
+      const result = await authApi.login(trimmedInput, password);
+      if (result && result.data && result.data.token) {
+        localStorage.setItem('auth_token', result.data.token);
+        const userRole = result.data.user.role.replace('ROLE_', '').toLowerCase();
+        const mappedRole = userRole === 'recruiter' ? 'company' : userRole;
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data && result.data.token) {
-          localStorage.setItem('auth_token', result.data.token);
-          const userSession = {
-            username: result.data.user.fullName || result.data.user.email.split('@')[0],
-            email: result.data.user.email,
-            role: result.data.user.role.replace('ROLE_', '').toLowerCase() === 'recruiter' ? 'company' : result.data.user.role.replace('ROLE_', '').toLowerCase()
-          };
-          localStorage.setItem('current_user', JSON.stringify(userSession));
-          setCurrentUser(userSession);
-          addToast('Authenticated with Spring Boot backend!', 'success');
-          setIsLoading(false);
-          redirectToDashboard(userSession.role);
-          return;
-        }
+        const sessionUser = {
+          id: result.data.user.id,
+          username: result.data.user.fullName || result.data.user.email.split('@')[0],
+          email: result.data.user.email,
+          role: mappedRole
+        };
+
+        localStorage.setItem('current_user', JSON.stringify(sessionUser));
+        setCurrentUser(sessionUser);
+        addToast('Authenticated with Spring Boot Backend!', 'success');
+        setIsLoading(false);
+        redirectToDashboard(mappedRole);
+        return;
       }
     } catch (err) {
-      // Backend not running on local port yet or offline fallback
+      // Backend not running locally yet; fall back to pre-seeded local storage
     }
 
-    // Client/Local Fallback
+    // 2. Client-side Fallback
     const db = JSON.parse(localStorage.getItem('user_db')) || {};
     const inputKey = trimmedInput.toLowerCase();
     const user = db[inputKey];
 
     if (!user) {
       setIsLoading(false);
-      addToast('Account not found. Please register an account below or use a 1-Click Demo Login.', 'error');
+      addToast('Account not found. Please click Create an Account below or select a 1-Click Demo Portal.', 'error');
       return;
     }
 
@@ -151,7 +147,7 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
         } else {
           onNavigate('onboarding');
         }
-      } else if (targetRole === 'company') {
+      } else if (targetRole === 'company' || targetRole === 'recruiter') {
         onNavigate('recruiter-dashboard');
       } else if (targetRole === 'admin') {
         onNavigate('admin-dashboard');

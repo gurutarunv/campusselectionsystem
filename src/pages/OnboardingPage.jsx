@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { studentApi } from '../services/api';
 
 export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
   const [name, setName] = useState('');
@@ -10,6 +11,7 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
   const [graduationYear, setGraduationYear] = useState('2026');
   const [skills, setSkills] = useState('Java, Spring Boot, React, MySQL, REST APIs, Git');
   const [resumeUrl, setResumeUrl] = useState('https://drive.google.com/file/d/demo-resume/view');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -23,23 +25,47 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
       setEmail(user.email);
     }
 
-    // Check if profile already exists (to edit profile)
+    // Try fetching existing profile from backend
+    loadExistingProfile();
+  }, [user, onNavigate]);
+
+  const loadExistingProfile = async () => {
+    try {
+      const res = await studentApi.getProfile();
+      if (res?.data) {
+        const p = res.data;
+        setName(p.fullName || user.username || '');
+        setEmail(p.email || user.email || '');
+        setMobile(p.phone || '');
+        setGender(p.gender || 'male');
+        setCgpa(p.cgpa ? p.cgpa.toString() : '8.85');
+        setBranch(p.branch || 'Computer Science & Engineering');
+        setGraduationYear(p.graduationYear ? p.graduationYear.toString() : '2026');
+        setSkills(p.skillsJson || 'Java, Spring Boot, React, MySQL');
+        setResumeUrl(p.resumeUrl || 'https://drive.google.com/file/d/demo-resume/view');
+        return;
+      }
+    } catch {
+      // Backend offline or first-time user
+    }
+
+    // Check localStorage fallback
     const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
-    const existingProfile = profiles[user.email?.toLowerCase()] || profiles[user.username.toLowerCase()];
+    const existingProfile = profiles[user.email?.toLowerCase()] || profiles[user.username?.toLowerCase()];
     if (existingProfile) {
       setName(existingProfile.name || user.username || '');
       setEmail(existingProfile.email || user.email || '');
       setMobile(existingProfile.mobile || '');
       setGender(existingProfile.gender || 'male');
-      setCgpa(existingProfile.cgpa || '8.85');
+      setCgpa(existingProfile.cgpa ? existingProfile.cgpa.toString() : '8.85');
       setBranch(existingProfile.branch || 'Computer Science & Engineering');
-      setGraduationYear(existingProfile.graduationYear || '2026');
-      setSkills(existingProfile.skills ? existingProfile.skills.join(', ') : 'Java, Spring Boot, React, MySQL');
+      setGraduationYear(existingProfile.graduationYear ? existingProfile.graduationYear.toString() : '2026');
+      setSkills(Array.isArray(existingProfile.skills) ? existingProfile.skills.join(', ') : (existingProfile.skills || 'Java, Spring Boot, React, MySQL'));
       setResumeUrl(existingProfile.resumeUrl || 'https://drive.google.com/file/d/demo-resume/view');
     }
-  }, [user, onNavigate]);
+  };
 
-  const handleProfileSubmit = (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
 
     const trimmedName = name.trim();
@@ -51,15 +77,34 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
       return;
     }
 
+    setIsSubmitting(true);
+
     const skillsArray = skills
       .split(',')
       .map((s) => s.trim())
       .filter((s) => s !== '');
 
-    // Save in student_profiles map
+    // 1. Attempt updating profile on Spring Boot backend
+    try {
+      await studentApi.updateProfile({
+        fullName: trimmedName,
+        phone: trimmedMobile,
+        gender: gender,
+        cgpa: parseFloat(cgpa) || 8.0,
+        branch: branch,
+        graduationYear: parseInt(graduationYear, 10) || 2026,
+        resumeUrl: resumeUrl,
+        skillsJson: skills
+      });
+      addToast('Academic profile updated on Spring Boot server!', 'success');
+    } catch (err) {
+      console.warn('Backend student profile update note:', err.message);
+    }
+
+    // 2. Save in student_profiles map
     const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
     const emailKey = trimmedEmail.toLowerCase();
-    const usernameKey = user.username.toLowerCase();
+    const usernameKey = (user.username || '').toLowerCase();
 
     const profileData = {
       username: user.username,
@@ -75,7 +120,7 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
     };
 
     profiles[emailKey] = profileData;
-    profiles[usernameKey] = profileData;
+    if (usernameKey) profiles[usernameKey] = profileData;
 
     localStorage.setItem('student_profiles', JSON.stringify(profiles));
 
@@ -87,11 +132,12 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
     localStorage.setItem('studentBranch', branch);
     localStorage.setItem('gender', gender);
 
-    addToast('Profile updated successfully! Directing to student portal...', 'success');
+    setIsSubmitting(false);
+    addToast('Profile saved successfully! Directing to student portal...', 'success');
 
     setTimeout(() => {
       onNavigate('dashboard');
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -149,7 +195,7 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
               <label htmlFor="gender">Gender:</label>
               <select 
                 id="gender" 
-                value={gender}
+                value={gender} 
                 onChange={(e) => setGender(e.target.value)}
                 required
               >
@@ -179,7 +225,7 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
               <label htmlFor="branch">Department / Branch:</label>
               <select 
                 id="branch" 
-                value={branch}
+                value={branch} 
                 onChange={(e) => setBranch(e.target.value)}
                 required
               >
@@ -197,7 +243,7 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
               <label htmlFor="graduationYear">Graduation Year:</label>
               <select 
                 id="graduationYear" 
-                value={graduationYear}
+                value={graduationYear} 
                 onChange={(e) => setGraduationYear(e.target.value)}
                 required
               >
@@ -239,8 +285,13 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
             >
               ← Cancel
             </button>
-            <button type="submit" className="btn-primary" style={{ flex: 1 }}>
-              Save Profile & Access Drives
+            <button 
+              type="submit" 
+              className="btn-primary" 
+              style={{ flex: 1 }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving Profile...' : 'Save Profile & Access Drives'}
             </button>
           </div>
         </form>

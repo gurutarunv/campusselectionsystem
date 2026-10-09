@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Logo from '../components/Logo';
+import { authApi } from '../services/api';
 
 export default function SignupPage({ onNavigate, onBack, addToast }) {
   const [role, setRole] = useState('student');
@@ -26,30 +27,36 @@ export default function SignupPage({ onNavigate, onBack, addToast }) {
 
     setIsLoading(true);
 
-    // Try creating account on real Spring Boot backend if available
+    // 1. Try creating account on Spring Boot backend if available
     try {
-      const endpoint = role === 'student' 
-        ? 'http://localhost:8080/api/v1/auth/register/student'
-        : 'http://localhost:8080/api/v1/auth/register/company';
-      
-      const payload = role === 'student'
-        ? { email: trimmedEmail, password: password, fullName: trimmedUsername, phone: '0000000000', gender: 'other' }
-        : { email: trimmedEmail, password: password, companyName: trimmedUsername, industry: 'Technology' };
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        addToast('Account created successfully on Spring Boot backend! Please sign in.', 'success');
-        setIsLoading(false);
-        setTimeout(() => onNavigate('login'), 1200);
-        return;
+      if (role === 'student') {
+        await authApi.registerStudent({
+          email: trimmedEmail,
+          password: password,
+          fullName: trimmedUsername,
+          phone: '+91 98765 43210',
+          gender: 'other',
+          branch: 'Computer Science & Engineering',
+          cgpa: 8.5
+        });
+      } else {
+        await authApi.registerCompany({
+          email: trimmedEmail,
+          password: password,
+          companyName: trimmedUsername,
+          industry: 'Technology',
+          website: 'https://company.com',
+          location: 'Bengaluru / Hybrid'
+        });
       }
+
+      addToast('Account created successfully on Spring Boot backend! Please sign in.', 'success');
+      setIsLoading(false);
+      setTimeout(() => onNavigate('login'), 1000);
+      return;
     } catch (err) {
-      // Fallback to local storage
+      console.warn('Backend registration note:', err.message);
+      // Fall through to localStorage db if backend is unreachable or local demo
     }
 
     let db = JSON.parse(localStorage.getItem('user_db')) || {};
@@ -61,7 +68,7 @@ export default function SignupPage({ onNavigate, onBack, addToast }) {
       return;
     }
 
-    // Save user
+    // Save user locally
     const newUser = {
       role: role,
       username: trimmedUsername,
@@ -78,7 +85,7 @@ export default function SignupPage({ onNavigate, onBack, addToast }) {
 
     setTimeout(() => {
       onNavigate('login');
-    }, 1200);
+    }, 1000);
   };
 
   return (

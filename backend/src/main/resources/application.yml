@@ -9,6 +9,10 @@ spring:
   profiles:
     active: dev
 
+  # JPA & Hibernate Global
+  jpa:
+    open-in-view: false
+
   # JSON Serialization
   jackson:
     serialization:
@@ -38,6 +42,7 @@ spring:
         web-allow-others: false
 
   jpa:
+    open-in-view: false
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
@@ -69,6 +74,7 @@ spring:
     password: ${DB_PASSWORD:root}
 
   jpa:
+    open-in-view: false
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: update

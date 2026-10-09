@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { jobsApi, applicationsApi, interviewsApi } from '../services/api';
 
 export default function RecruiterDashboard({ user, onNavigate, onBack, addToast }) {
   const [applications, setApplications] = useState([]);
   const [postedJobs, setPostedJobs] = useState([]);
   const [profiles, setProfiles] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   
   // Post Job Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,51 +22,99 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [selectedCandidateIndex, setSelectedCandidateIndex] = useState(null);
   const [interviewDate, setInterviewDate] = useState('2026-10-15T10:30');
-  const [interviewRound, setInterviewRound] = useState('Round 1: Technical & DSA');
+  const [interviewRound, setInterviewRound] = useState('TECHNICAL_ROUND');
   const [meetingLink, setMeetingLink] = useState('https://meet.google.com/cpa-demo-round');
 
   useEffect(() => {
     loadRecruiterData();
-  }, []);
+  }, [user]);
 
-  const loadRecruiterData = () => {
-    let allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
-    const allPostedJobs = JSON.parse(localStorage.getItem('posted_jobs')) || [];
+  const loadRecruiterData = async () => {
+    setIsLoading(true);
     const allProfiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
-    
-    // If no applications exist, seed realistic applications for recruiter demonstration
-    if (allApplications.length === 0) {
-      allApplications = [
-        {
-          studentUsername: 'Guru Prasad',
-          studentEmail: 'student@campus.edu',
-          studentName: 'Guru Prasad',
-          company: 'Google LLC',
-          job: 'Software Development Engineer - Cloud & Infrastructure',
-          stream: 'IT',
-          date: '2026-10-02',
-          status: 'Shortlisted'
-        },
-        {
-          studentUsername: 'Ananya Sharma',
-          studentEmail: 'ananya.s@campus.edu',
-          studentName: 'Ananya Sharma',
-          company: 'Google LLC',
-          job: 'Software Development Engineer - Cloud & Infrastructure',
-          stream: 'IT',
-          date: '2026-10-04',
-          status: 'Under Review'
-        }
-      ];
-      localStorage.setItem('job_applications', JSON.stringify(allApplications));
+    setProfiles(allProfiles);
+
+    let fetchedFromBackend = false;
+
+    // 1. Attempt fetching recruiter pipeline from Spring Boot backend
+    try {
+      const pipelineRes = await applicationsApi.getRecruiterPipeline();
+      if (pipelineRes?.data && pipelineRes.data.length > 0) {
+        const mappedApps = pipelineRes.data.map((app) => ({
+          id: app.id,
+          studentUsername: app.studentName,
+          studentEmail: app.studentEmail,
+          studentName: app.studentName,
+          studentPhone: app.studentPhone || '+91 98765 43210',
+          studentBranch: app.studentBranch || 'Computer Science',
+          studentCgpa: app.studentCgpa || 8.5,
+          company: app.companyName,
+          job: app.jobTitle,
+          stream: app.stream === 'NON_IT' ? 'NON-IT' : 'IT',
+          date: app.appliedAt ? app.appliedAt.split('T')[0] : '2026-10-08',
+          status: app.status.replace(/_/g, ' ')
+        }));
+        setApplications(mappedApps);
+        fetchedFromBackend = true;
+      }
+    } catch {
+      // Backend not running or token expired
     }
 
-    setApplications(allApplications);
-    setPostedJobs(allPostedJobs);
-    setProfiles(allProfiles);
+    // 2. Attempt fetching posted jobs from backend
+    try {
+      const jobsRes = await jobsApi.getMyPostedJobs();
+      if (jobsRes?.data && jobsRes.data.length > 0) {
+        setPostedJobs(jobsRes.data);
+      }
+    } catch {
+      const allPostedJobs = JSON.parse(localStorage.getItem('posted_jobs')) || [];
+      setPostedJobs(allPostedJobs);
+    }
+
+    // Fallback to local storage if backend pipeline was empty or offline
+    if (!fetchedFromBackend) {
+      let allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
+      if (allApplications.length === 0) {
+        allApplications = [
+          {
+            id: 1,
+            studentUsername: 'Guru Prasad',
+            studentEmail: 'student@campus.edu',
+            studentName: 'Guru Prasad',
+            studentPhone: '+91 98765 43210',
+            studentBranch: 'Computer Science & Engineering',
+            studentCgpa: 8.85,
+            company: 'Google LLC',
+            job: 'Software Development Engineer - Cloud & Infrastructure',
+            stream: 'IT',
+            date: '2026-10-02',
+            status: 'Shortlisted'
+          },
+          {
+            id: 2,
+            studentUsername: 'Ananya Sharma',
+            studentEmail: 'ananya.s@campus.edu',
+            studentName: 'Ananya Sharma',
+            studentPhone: '+91 98765 43211',
+            studentBranch: 'Information Technology',
+            studentCgpa: 9.12,
+            company: 'Google LLC',
+            job: 'Software Development Engineer - Cloud & Infrastructure',
+            stream: 'IT',
+            date: '2026-10-04',
+            status: 'Under Review'
+          }
+        ];
+        localStorage.setItem('job_applications', JSON.stringify(allApplications));
+      }
+      setApplications(allApplications);
+    }
+
+    setIsLoading(false);
   };
 
-  const handlePostJobSubmit = (e) => {
+  const handlePostJobSubmit = async (e) => {
     e.preventDefault();
 
     const trimmedCompany = companyName.trim();
@@ -76,6 +126,27 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
       return;
     }
 
+    // 1. Try publishing on Spring Boot backend
+    try {
+      const backendPayload = {
+        title: trimmedTitle,
+        stream: stream === 'NON-IT' ? 'NON_IT' : 'IT',
+        salaryPackage: salaryPackage,
+        minCgpa: parseFloat(minCgpa) || 7.0,
+        location: location,
+        description: trimmedDesc,
+        requiredSkills: requirements,
+        eligibleBranches: 'ALL'
+      };
+      const res = await jobsApi.createJob(backendPayload);
+      if (res?.data) {
+        addToast(`Successfully published drive "${trimmedTitle}" via Spring Boot API!`, 'success');
+      }
+    } catch {
+      // Offline fallback
+    }
+
+    // 2. Also persist in local storage
     const requirementsArray = requirements
       .split(',')
       .map((r) => r.trim())
@@ -94,7 +165,7 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
     });
 
     localStorage.setItem('posted_jobs', JSON.stringify(currentPostedJobs));
-    addToast(`Successfully published "${trimmedTitle}" for ${trimmedCompany}!`, 'success');
+    addToast(`Placement drive "${trimmedTitle}" is active!`, 'success');
 
     // Reset Form & Close Modal
     setJobTitle('');
@@ -104,38 +175,69 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
     loadRecruiterData();
   };
 
-  const handleUpdateStatus = (index, newStatus) => {
+  const handleUpdateStatus = async (index, newStatus) => {
     const allApplications = [...applications];
-    if (allApplications[index]) {
-      const applicantName = allApplications[index].studentName;
-      allApplications[index].status = newStatus;
-      setApplications(allApplications);
-      localStorage.setItem('job_applications', JSON.stringify(allApplications));
-      
-      addToast(`Updated ${applicantName}'s application stage to "${newStatus}"!`, 'success');
+    const targetApp = allApplications[index];
+    if (!targetApp) return;
 
-      // If set to Interview Scheduled, auto-prompt interview scheduler modal
-      if (newStatus === 'Interview Scheduled' || newStatus === 'Shortlisted') {
-        setSelectedCandidateIndex(index);
+    const applicantName = targetApp.studentName;
+    targetApp.status = newStatus;
+    setApplications([...allApplications]);
+
+    // Backend formatted status
+    const backendStatus = newStatus.toUpperCase().replace(/\s+/g, '_');
+
+    if (targetApp.id && typeof targetApp.id === 'number') {
+      try {
+        await applicationsApi.updateStatus(targetApp.id, backendStatus, `Stage updated to ${newStatus}`);
+      } catch (err) {
+        console.warn('Backend status update note:', err.message);
       }
+    }
+
+    localStorage.setItem('job_applications', JSON.stringify(allApplications));
+    addToast(`Updated ${applicantName}'s stage to "${newStatus}"!`, 'success');
+
+    if (newStatus === 'Interview Scheduled' || newStatus === 'Shortlisted') {
+      setSelectedCandidateIndex(index);
     }
   };
 
-  const handleScheduleInterviewSubmit = (e) => {
+  const handleScheduleInterviewSubmit = async (e) => {
     e.preventDefault();
     if (selectedCandidateIndex === null) return;
 
     const candidate = applications[selectedCandidateIndex];
+    
+    // Attempt backend interview scheduling
+    if (candidate.id && typeof candidate.id === 'number') {
+      try {
+        await interviewsApi.scheduleInterview({
+          applicationId: candidate.id,
+          interviewDate: `${interviewDate}:00`,
+          interviewType: interviewRound,
+          locationOrLink: meetingLink,
+          feedbackNotes: `Scheduled interview round: ${interviewRound}`
+        });
+      } catch (err) {
+        console.warn('Backend interview scheduling note:', err.message);
+      }
+    }
+
     handleUpdateStatus(selectedCandidateIndex, 'Interview Scheduled');
     setIsInterviewModalOpen(false);
-    addToast(`Interview invitation sent to ${candidate.studentName} for ${interviewRound}!`, 'success');
+    addToast(`Interview invitation dispatched to ${candidate.studentName}!`, 'success');
   };
 
   // Stats Counters
   const activeListingsCount = 4 + postedJobs.length;
   const applicationsReceivedCount = applications.length;
-  const shortlistedCount = applications.filter((app) => app.status === 'Shortlisted' || app.status === 'Interview Scheduled').length;
-  const selectedCount = applications.filter((app) => app.status === 'Selected').length;
+  const shortlistedCount = applications.filter((app) => 
+    app.status === 'Shortlisted' || app.status === 'Interview Scheduled' || app.status === 'INTERVIEW_SCHEDULED'
+  ).length;
+  const selectedCount = applications.filter((app) => 
+    app.status === 'Selected' || app.status === 'OFFER_EXTENDED' || app.status === 'OFFER_ACCEPTED'
+  ).length;
 
   return (
     <div className="container">
@@ -219,14 +321,20 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
             </tr>
           </thead>
           <tbody>
-            {applications.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan="5" style={{ textAlign: 'center', color: 'var(--slate-500)', padding: '30px' }}>
+                  Loading applicant pipeline...
+                </td>
+              </tr>
+            ) : applications.length > 0 ? (
               applications.map((app, index) => {
                 const studentProfile = profiles[app.studentUsername?.toLowerCase()] || profiles[app.studentEmail?.toLowerCase()];
                 const email = studentProfile ? studentProfile.email : (app.studentEmail || 'student@campus.edu');
-                const phone = studentProfile ? studentProfile.mobile : '+91 98765 43210';
-                const branch = studentProfile ? studentProfile.branch : 'Computer Science';
-                const cgpa = studentProfile ? studentProfile.cgpa : '8.85';
-                const name = studentProfile ? studentProfile.name : app.studentName;
+                const phone = app.studentPhone || (studentProfile ? studentProfile.mobile : '+91 98765 43210');
+                const branch = app.studentBranch || (studentProfile ? studentProfile.branch : 'Computer Science');
+                const cgpa = app.studentCgpa || (studentProfile ? studentProfile.cgpa : '8.85');
+                const name = app.studentName || (studentProfile ? studentProfile.name : app.studentUsername);
 
                 return (
                   <tr key={index}>
@@ -437,10 +545,10 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
                   onChange={(e) => setInterviewRound(e.target.value)}
                   required
                 >
-                  <option value="Round 1: Technical & DSA">Round 1: Technical & DSA</option>
-                  <option value="Round 2: System Design & Java Architecture">Round 2: System Design & Java Architecture</option>
-                  <option value="Round 3: Behavioral & HR Round">Round 3: Behavioral & HR Round</option>
-                  <option value="Final Selection Discussion">Final Selection Discussion</option>
+                  <option value="TECHNICAL_ROUND">Round 1: Technical & DSA</option>
+                  <option value="ONLINE_MEET">Round 2: System Design & Architecture</option>
+                  <option value="HR_ROUND">Round 3: Behavioral & HR Round</option>
+                  <option value="ON_CAMPUS">Final On-Campus Evaluation</option>
                 </select>
               </div>
 

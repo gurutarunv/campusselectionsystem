@@ -86,9 +86,9 @@ The application includes realistic pre-seeded accounts for evaluators:
 
 | Portal | Email | Password | Role Description |
 |---|---|---|---|
-| **Student** | `student@campus.edu` | `password123` | Pre-loaded candidate (CGPA: 8.85, CS Branch) |
-| **Recruiter** | `recruiter@google.com` | `password123` | Google Tech Recruiter with active drives |
-| **Placement Admin** | `admin@campus.edu` | `password123` | University Placement Officer |
+| **Student** | `student@campus.edu` | `Student@123` | Pre-loaded candidate (CGPA: 8.85, CS Branch) |
+| **Recruiter** | `recruiter@google.com` | `Recruiter@123` | Google Tech Recruiter with active drives |
+| **Placement Admin** | `admin@campus.edu` | `Admin@123` | University Placement Officer |
 
 ---
 

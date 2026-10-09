@@ -1,20 +1,76 @@
 import React, { useState, useEffect } from 'react';
+import { studentApi, interviewsApi, applicationsApi } from '../services/api';
 
 export default function StudentDashboard({ user, onNavigate, onBack, addToast }) {
   const [profile, setProfile] = useState(null);
   const [applications, setApplications] = useState([]);
   const [interviews, setInterviews] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     loadStudentData();
   }, [user]);
 
-  const loadStudentData = () => {
+  const loadStudentData = async () => {
+    setIsLoading(true);
     const usernameKey = user.username.toLowerCase();
     const emailKey = (user.email || '').toLowerCase();
-    
-    // Load student profile
+
+    // 1. Try loading from Spring Boot Backend API
+    try {
+      const [profileRes, appsRes, interviewsRes] = await Promise.allSettled([
+        studentApi.getProfile(),
+        studentApi.getMyApplications(),
+        interviewsApi.getMySchedule()
+      ]);
+
+      if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
+        const p = profileRes.value.data;
+        const mappedSkills = p.skillsJson ? p.skillsJson.split(',').map(s => s.trim()) : [];
+        setProfile({
+          name: p.fullName,
+          email: p.email,
+          mobile: p.phone,
+          gender: p.gender,
+          cgpa: p.cgpa,
+          branch: p.branch,
+          graduationYear: p.graduationYear,
+          skills: mappedSkills
+        });
+      }
+
+      if (appsRes.status === 'fulfilled' && appsRes.value?.data) {
+        setApplications(appsRes.value.data.map(a => ({
+          id: a.id,
+          company: a.companyName,
+          job: a.jobTitle,
+          stream: a.stream,
+          date: a.appliedAt ? a.appliedAt.split('T')[0] : 'Recent',
+          status: a.status
+        })));
+      }
+
+      if (interviewsRes.status === 'fulfilled' && interviewsRes.value?.data) {
+        setInterviews(interviewsRes.value.data.map(i => ({
+          id: i.id,
+          company: i.companyName,
+          round: i.interviewType ? i.interviewType.replace('_', ' ') : 'Technical Round',
+          time: i.interviewDate ? i.interviewDate.replace('T', ' ') : 'Upcoming',
+          mode: i.locationOrLink.includes('http') ? 'Online Meet' : i.locationOrLink,
+          link: i.locationOrLink
+        })));
+      }
+
+      if (profileRes.status === 'fulfilled') {
+        setIsLoading(false);
+        return;
+      }
+    } catch (err) {
+      // Backend not running locally yet; fall back to local storage
+    }
+
+    // 2. Fallback to localStorage
     const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
     const currentProfile = profiles[emailKey] || profiles[usernameKey];
     
@@ -33,7 +89,6 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
       });
     }
 
-    // Load applications list
     const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
     const filteredApps = allApplications.filter(
       (app) => (app.studentUsername && app.studentUsername.toLowerCase() === usernameKey) ||
@@ -41,7 +96,6 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
                app.studentName === user.username
     );
 
-    // If no applications exist in localStorage yet, provide realistic sample applications
     if (filteredApps.length === 0) {
       const defaultApps = [
         {
@@ -71,40 +125,45 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
       setApplications(filteredApps);
     }
 
-    // Scheduled Interviews
-    const scheduledInterviews = [
+    setInterviews([
       {
         company: 'Google LLC',
-        round: 'Round 1: DSA & Core Java Technical Interview',
+        round: 'Round 1: Technical & DSA Interview',
         time: 'Tomorrow, 10:30 AM IST',
         mode: 'Google Meet (Virtual)',
         link: 'https://meet.google.com/cpa-demo-inte'
       }
-    ];
-    setInterviews(scheduledInterviews);
+    ]);
+    setIsLoading(false);
   };
 
-  const handleWithdrawApplication = (index) => {
+  const handleWithdrawApplication = async (index) => {
     const targetApp = applications[index];
     const confirmWithdraw = window.confirm(
       `Are you sure you want to withdraw your application for "${targetApp.job}" at ${targetApp.company}?`
     );
     if (!confirmWithdraw) return;
 
+    if (targetApp.id) {
+      try {
+        await applicationsApi.withdraw(targetApp.id);
+        addToast(`Application to ${targetApp.company} has been withdrawn via backend.`, 'success');
+        loadStudentData();
+        return;
+      } catch (e) {}
+    }
+
     const updatedApps = [...applications];
     updatedApps[index].status = 'Withdrawn';
     setApplications(updatedApps);
 
-    // Save back to localStorage
     const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];
     const updatedGlobal = allApplications.map((app) =>
       app.company === targetApp.company && app.job === targetApp.job ? { ...app, status: 'Withdrawn' } : app
     );
     localStorage.setItem('job_applications', JSON.stringify(updatedGlobal));
 
-    if (addToast) {
-      addToast(`Application to ${targetApp.company} has been withdrawn.`, 'success');
-    }
+    addToast(`Application to ${targetApp.company} has been withdrawn.`, 'success');
   };
 
   if (!user || !profile) {
@@ -207,7 +266,6 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
       </p>
       
       <div className="grid-2">
-        {/* IT STREAM CARD */}
         <div className="stream-card" onClick={() => onNavigate('it-placements')}>
           <div>
             <div className="stream-icon">💻</div>
@@ -221,7 +279,6 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
           </button>
         </div>
 
-        {/* NON-IT STREAM CARD */}
         <div className="stream-card" onClick={() => onNavigate('non-it-placements')}>
           <div>
             <div className="stream-icon">🩺</div>
@@ -280,7 +337,7 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
                     </td>
                     <td style={{ color: 'var(--slate-600)' }}>{app.date}</td>
                     <td>
-                      <span className={`status-badge ${app.status.toLowerCase().replace(/\s+/g, '-')}`}>
+                      <span className={`status-badge ${app.status ? app.status.toLowerCase().replace(/\s+/g, '-') : 'applied'}`}>
                         {app.status}
                       </span>
                     </td>

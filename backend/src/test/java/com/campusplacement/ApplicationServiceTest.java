@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -53,6 +54,7 @@ class ApplicationServiceTest {
     private StudentProfile student;
     private Job job;
     private User user;
+    private Company company;
 
     @BeforeEach
     void setUp() {
@@ -62,7 +64,10 @@ class ApplicationServiceTest {
         student = new StudentProfile(user, "Guru Prasad", "12345", "male", BigDecimal.valueOf(8.8), "CS", 2026, "Java");
         student.setId(1L);
 
-        Company company = new Company(null, "Google", "Tech", "web", "Hyd", true, "desc");
+        User recruiter = new User("recruiter@google.com", "pass", Role.ROLE_RECRUITER);
+        recruiter.setId(2L);
+
+        company = new Company(recruiter, "Google LLC", "Tech", "web", "Hyd", true, "desc");
         company.setId(1L);
 
         job = new Job(company, "SDE", JobStream.IT, JobType.FULL_TIME, BigDecimal.valueOf(7.0), "CS", "Hyd", "20 LPA", "desc", "Java", LocalDate.now().plusDays(30));
@@ -83,5 +88,26 @@ class ApplicationServiceTest {
         );
 
         verify(applicationRepository, never()).save(any(Application.class));
+    }
+
+    @Test
+    void applyForJob_EligibleStudent_SuccessfullySavesApplication() {
+        when(studentProfileRepository.findByUserEmail("student@campus.edu")).thenReturn(Optional.of(student));
+        when(jobRepository.findById(5L)).thenReturn(Optional.of(job));
+        when(applicationRepository.existsByStudentProfileIdAndJobId(1L, 5L)).thenReturn(false);
+        when(jobService.checkEligibility(1L, 5L)).thenReturn(true);
+
+        Application savedApp = new Application(student, job, "Cover note");
+        savedApp.setId(100L);
+        when(applicationRepository.save(any(Application.class))).thenReturn(savedApp);
+
+        ApplicationRequest req = new ApplicationRequest("Cover note");
+        ApplicationResponse response = applicationService.applyForJob("student@campus.edu", 5L, req);
+
+        assertNotNull(response);
+        assertEquals(100L, response.getId());
+        assertEquals("Google LLC", response.getCompanyName());
+        verify(historyRepository, times(1)).save(any(ApplicationStatusHistory.class));
+        verify(notificationService, times(1)).sendNotification(any(), any(), any(), any());
     }
 }
