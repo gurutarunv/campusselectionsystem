@@ -8,6 +8,7 @@ public class StudentProfileResponse {
     private Long userId;
     private String email;
     private String fullName;
+    private Integer age;
     private String phone;
     private String gender;
     private BigDecimal cgpa;
@@ -35,6 +36,9 @@ public class StudentProfileResponse {
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }

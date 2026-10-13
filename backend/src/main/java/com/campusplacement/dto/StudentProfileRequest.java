@@ -9,6 +9,10 @@ public class StudentProfileRequest {
     @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
     private String fullName;
 
+    @Min(value = 16, message = "Age must be at least 16")
+    @Max(value = 99, message = "Age must be less than 100")
+    private Integer age;
+
     @NotBlank(message = "Phone number is required")
     @Pattern(regexp = "^(\\+91[\\-\\s]?)?[6-9]\\d{9}$", message = "Please enter a valid 10-digit mobile number")
     private String phone;
@@ -34,6 +38,9 @@ public class StudentProfileRequest {
     // Getters and Setters
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }

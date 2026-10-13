@@ -115,8 +115,21 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
 
     // 2. Client-side Fallback (for offline demo mode)
     const db = JSON.parse(localStorage.getItem('user_db')) || {};
+    const localUsers = JSON.parse(localStorage.getItem('local_registered_users')) || [];
     const inputKey = trimmedInput.toLowerCase();
-    const user = db[inputKey];
+    
+    let user = db[inputKey];
+    if (!user) {
+      const foundInLocal = localUsers.find((u) => u.email === inputKey);
+      if (foundInLocal) {
+        user = {
+          username: foundInLocal.fullName,
+          password: foundInLocal.password,
+          role: foundInLocal.role,
+          email: foundInLocal.email
+        };
+      }
+    }
 
     if (!user) {
       setIsLoading(false);

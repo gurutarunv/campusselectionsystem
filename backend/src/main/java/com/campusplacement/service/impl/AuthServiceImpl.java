@@ -2,6 +2,7 @@ package com.campusplacement.service.impl;
 
 import com.campusplacement.dto.AuthRequest;
 import com.campusplacement.dto.AuthResponse;
+import java.math.BigDecimal;
 import com.campusplacement.dto.RegisterCompanyRequest;
 import com.campusplacement.dto.RegisterStudentRequest;
 import com.campusplacement.dto.StoredFile;
@@ -94,7 +95,7 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("An account with email " + request.getEmail() + " already exists.");
         }
-        if (studentProfileRepository.existsByPhone(request.getPhone())) {
+        if (request.getPhone() != null && !request.getPhone().isBlank() && studentProfileRepository.existsByPhone(request.getPhone())) {
             throw new DuplicateResourceException("An account with mobile number " + request.getPhone() + " already exists.");
         }
 
@@ -105,16 +106,22 @@ public class AuthServiceImpl implements AuthService {
         );
         User savedUser = userRepository.save(user);
 
+        String phone = (request.getPhone() != null && !request.getPhone().isBlank()) ? request.getPhone() : "";
+        BigDecimal cgpa = request.getCgpa() != null ? request.getCgpa() : BigDecimal.ZERO;
+        String branch = (request.getBranch() != null && !request.getBranch().isBlank()) ? request.getBranch() : "Not Specified";
+        Integer gradYear = request.getGraduationYear() != null ? request.getGraduationYear() : java.time.LocalDate.now().getYear();
+
         StudentProfile profile = new StudentProfile(
                 savedUser,
                 request.getFullName(),
-                request.getPhone(),
+                phone,
                 request.getGender() != null ? request.getGender() : "unspecified",
-                request.getCgpa(),
-                request.getBranch(),
-                request.getGraduationYear(),
+                cgpa,
+                branch,
+                gradYear,
                 request.getSkillsJson()
         );
+        profile.setAge(request.getAge());
 
         if (resumeFile != null && !resumeFile.isEmpty()) {
             StoredFile storedFile = fileStorageService.storePdf(resumeFile);

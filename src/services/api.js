@@ -43,6 +43,13 @@ async function request(endpoint, options = {}) {
     }
     return response;
   } catch (error) {
+    if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
+      const netErr = new Error(`Cannot connect to backend server at ${API_BASE_URL}.`);
+      netErr.isNetworkError = true;
+      netErr.originalMessage = error.message;
+      console.warn(`[API] Network error connecting to ${endpoint}:`, error.message);
+      throw netErr;
+    }
     console.warn(`[API] Request to ${endpoint} failed:`, error.message);
     throw error;
   }

@@ -66,6 +66,7 @@ public class StudentServiceImpl implements StudentService {
                 .orElseGet(() -> new StudentProfile(user, request.getFullName(), request.getPhone(), request.getGender(), request.getCgpa(), request.getBranch(), request.getGraduationYear(), request.getSkillsJson()));
 
         profile.setFullName(request.getFullName());
+        profile.setAge(request.getAge());
         profile.setPhone(request.getPhone());
         profile.setGender(request.getGender());
         profile.setCgpa(request.getCgpa());
@@ -182,6 +183,7 @@ public class StudentServiceImpl implements StudentService {
         res.setUserId(profile.getUser().getId());
         res.setEmail(profile.getUser().getEmail());
         res.setFullName(profile.getFullName());
+        res.setAge(profile.getAge());
         res.setPhone(profile.getPhone());
         res.setGender(profile.getGender());
         res.setCgpa(profile.getCgpa());

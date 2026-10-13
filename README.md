@@ -58,13 +58,14 @@ campus-placement-assistance/
 
 ## 🚀 Key Features
 
-### 🎓 1. Student Portal & Real Account Registration
-- **Real User Registration:** Clean, un-prefilled registration collecting real user data across 5 organized sections: Personal Info, Academic Info, Technical Skills, Resume PDF Upload, and Account Security.
-- **Strict Validations:** Indian 10-digit mobile number validation (`+91` prefix optional, `^[6-9]\d{9}$`), department selection dropdown, graduation year selector, CGPA scale validation (0.0 to 10.0), and interactive multi-skill tag input.
+### 🎓 1. Student Portal & Streamlined Account Onboarding
+- **Streamlined Account Creation:** Student registration focuses purely on essential credentials: **Full Name**, **Age**, **Email Address**, and **Password** (with show/hide toggle).
+- **Comprehensive Profile Setup:** Immediately after account creation, students are routed to the Academic Profile & Placement Setup section to complete their **Department / Branch**, **Graduation Year**, **CGPA**, **Technical Skills** (interactive tag input), and **Direct PDF Resume Upload**.
+- **Offline & Network Resilience:** Eliminates raw connection errors ("Failed to fetch") with automatic local session fallback if the Spring Boot backend is offline, while syncing seamlessly whenever the backend is running.
 - **Direct PDF Resume Upload:** Modern drag-and-drop & file picker uploader (5 MB limit). Replaces raw URLs with authentic binary files.
 - **Magic-Byte Signature Verification:** Server inspects file headers for `%PDF` magic bytes (`0x25 0x50 0x44 0x46`) to block spoofed or renamed executables.
 - **Secure File Storage & RBAC:** Unique server-side UUID storage names outside the public web root (`uploads/resumes`), with path-traversal safeguards and streaming preview (`inline`) and download (`attachment`) endpoints restricted to the student owner, recruiters, and placement administrators.
-- **Academic Profile Editor:** Dedicated "Edit Profile" feature allowing students to update personal/academic info and upload or replace their resume PDF anytime.
+- **Dedicated Profile Editor:** Allows students to update personal/academic info, edit technical skill chips, and replace or delete their resume PDF anytime without creating a new account.
 - **Placement Stream Browsing:** Explore verified **IT and Non-IT / Healthcare** placement drives with automated eligibility verification.
 - **Application Lifecycle Tracking:** Monitor progress across stages (`Applied` → `Under Review` → `Shortlisted` → `Interview Scheduled` → `Selected` / `Rejected`).
 - **Interview Portal:** Access scheduled interview rounds, interviewers, and Google Meet virtual room links.

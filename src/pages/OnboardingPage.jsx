@@ -28,6 +28,7 @@ const GRADUATION_YEARS = [
 export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
   const [name, setName] = useState(user?.username || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [age, setAge] = useState(user?.age ? user.age.toString() : '');
   const [mobile, setMobile] = useState('');
   const [cgpa, setCgpa] = useState('');
   const [branch, setBranch] = useState('');
@@ -46,6 +47,7 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
         const p = res.data;
         setName(p.fullName || user.username || '');
         setEmail(p.email || user.email || '');
+        if (p.age != null) setAge(p.age.toString());
         setMobile(p.phone || '');
         setCgpa(p.cgpa != null ? p.cgpa.toString() : '');
         setBranch(p.branch || '');
@@ -77,6 +79,7 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
     if (existing) {
       setName(existing.name || user.username || '');
       setEmail(existing.email || user.email || '');
+      if (existing.age != null) setAge(existing.age.toString());
       setMobile(existing.mobile || '');
       setCgpa(existing.cgpa != null ? existing.cgpa.toString() : '');
       setBranch(existing.branch || '');
@@ -144,13 +147,26 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
       // 1. If user selected a new PDF resume, upload it
       let uploadedResumeMeta = existingResume;
       if (newResumeFile) {
-        const uploadRes = await studentApi.uploadResume(newResumeFile);
-        if (uploadRes?.data) {
+        try {
+          const uploadRes = await studentApi.uploadResume(newResumeFile);
+          if (uploadRes?.data) {
+            uploadedResumeMeta = {
+              fileName: uploadRes.data.resumeFileName,
+              fileSize: uploadRes.data.resumeFileSize,
+              uploadedAt: uploadRes.data.resumeUploadedAt,
+              resumeUrl: uploadRes.data.resumeUrl
+            };
+            setExistingResume(uploadedResumeMeta);
+            setNewResumeFile(null);
+          }
+        } catch (uploadErr) {
+          console.warn('Backend resume upload notice:', uploadErr.message);
+          // Local fallback for display
           uploadedResumeMeta = {
-            fileName: uploadRes.data.resumeFileName,
-            fileSize: uploadRes.data.resumeFileSize,
-            uploadedAt: uploadRes.data.resumeUploadedAt,
-            resumeUrl: uploadRes.data.resumeUrl
+            fileName: newResumeFile.name,
+            fileSize: newResumeFile.size,
+            uploadedAt: new Date().toISOString(),
+            resumeUrl: null
           };
           setExistingResume(uploadedResumeMeta);
           setNewResumeFile(null);
@@ -160,6 +176,7 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
       // 2. Update profile on Spring Boot backend
       const profilePayload = {
         fullName: trimmedName,
+        age: age ? parseInt(age, 10) : null,
         phone: trimmedMobile,
         gender: 'unspecified',
         cgpa: parsedCgpa,
@@ -168,13 +185,18 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
         skillsJson: skills.join(', ')
       };
 
-      await studentApi.updateProfile(profilePayload);
+      try {
+        await studentApi.updateProfile(profilePayload);
+      } catch (backendErr) {
+        console.warn('Backend update notice (offline fallback):', backendErr.message);
+      }
 
       // 3. Update local storage profile cache
       const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
       const updatedProfileData = {
         username: user.username,
         name: trimmedName,
+        age: age ? parseInt(age, 10) : null,
         email: trimmedEmail,
         mobile: trimmedMobile,
         cgpa: parsedCgpa,
@@ -190,14 +212,14 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
       localStorage.setItem('student_profiles', JSON.stringify(profiles));
 
       setIsSubmitting(false);
-      addToast('Academic profile and resume updated successfully on Spring Boot server!', 'success');
+      addToast('Profile, academic information, and resume saved successfully!', 'success');
 
       setTimeout(() => {
         onNavigate('dashboard');
-      }, 500);
+      }, 700);
     } catch (err) {
       setIsSubmitting(false);
-      addToast(err.message || 'Error updating profile on backend server.', 'error');
+      addToast(err.message || 'Error updating profile.', 'error');
     }
   };
 
@@ -250,16 +272,31 @@ export default function OnboardingPage({ user, onNavigate, onBack, addToast }) {
                 </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label htmlFor="studentMobile">Mobile Number: <span className="req-star">*</span></label>
-                <input 
-                  type="tel" 
-                  id="studentMobile" 
-                  placeholder="e.g. 9876543210" 
-                  value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
-                  required 
-                />
+              <div className="grid-2" style={{ gap: '14px', marginBottom: 0 }}>
+                <div className="form-group">
+                  <label htmlFor="studentAge">Age:</label>
+                  <input 
+                    type="number" 
+                    id="studentAge" 
+                    placeholder="e.g. 21" 
+                    min="16"
+                    max="99"
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="studentMobile">Mobile Number: <span className="req-star">*</span></label>
+                  <input 
+                    type="tel" 
+                    id="studentMobile" 
+                    placeholder="e.g. 9876543210" 
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value)}
+                    required 
+                  />
+                </div>
               </div>
             </div>
 

@@ -22,6 +22,9 @@ public class StudentProfile {
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
+    @Column(name = "age")
+    private Integer age;
+
     @Column(nullable = false, length = 25)
     private String phone;
 
@@ -97,6 +100,9 @@ public class StudentProfile {
 
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+
+    public Integer getAge() { return age; }
+    public void setAge(Integer age) { this.age = age; }
 
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }

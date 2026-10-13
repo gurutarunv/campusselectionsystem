@@ -71,6 +71,7 @@ class AuthServiceTest {
         request.setEmail("student@campus.edu");
         request.setPassword("password123");
         request.setFullName("Test Student");
+        request.setAge(21);
         request.setPhone("9876543210");
         request.setGender("male");
         request.setCgpa(BigDecimal.valueOf(8.5));
@@ -89,6 +90,7 @@ class AuthServiceTest {
         request.setEmail("new.student@campus.edu");
         request.setPassword("password123");
         request.setFullName("Test Student 2");
+        request.setAge(22);
         request.setPhone("9876543210");
         request.setGender("male");
         request.setCgpa(BigDecimal.valueOf(8.5));
