@@ -58,31 +58,39 @@ campus-placement-assistance/
 
 ## 🚀 Key Features
 
-### 🎓 1. Student Portal
-- **Academic Profile Management:** Maintain CGPA, department branch, graduation year, skill tags, and resume links.
-- **Placement Stream Browsing:** Explore verified **IT and Non-IT / Healthcare** placement drives.
-- **Automated Eligibility Checks:** Instant feedback on CGPA thresholds and eligible academic departments.
+### 🎓 1. Student Portal & Real Account Registration
+- **Real User Registration:** Clean, un-prefilled registration collecting real user data across 5 organized sections: Personal Info, Academic Info, Technical Skills, Resume PDF Upload, and Account Security.
+- **Strict Validations:** Indian 10-digit mobile number validation (`+91` prefix optional, `^[6-9]\d{9}$`), department selection dropdown, graduation year selector, CGPA scale validation (0.0 to 10.0), and interactive multi-skill tag input.
+- **Direct PDF Resume Upload:** Modern drag-and-drop & file picker uploader (5 MB limit). Replaces raw URLs with authentic binary files.
+- **Magic-Byte Signature Verification:** Server inspects file headers for `%PDF` magic bytes (`0x25 0x50 0x44 0x46`) to block spoofed or renamed executables.
+- **Secure File Storage & RBAC:** Unique server-side UUID storage names outside the public web root (`uploads/resumes`), with path-traversal safeguards and streaming preview (`inline`) and download (`attachment`) endpoints restricted to the student owner, recruiters, and placement administrators.
+- **Academic Profile Editor:** Dedicated "Edit Profile" feature allowing students to update personal/academic info and upload or replace their resume PDF anytime.
+- **Placement Stream Browsing:** Explore verified **IT and Non-IT / Healthcare** placement drives with automated eligibility verification.
 - **Application Lifecycle Tracking:** Monitor progress across stages (`Applied` → `Under Review` → `Shortlisted` → `Interview Scheduled` → `Selected` / `Rejected`).
 - **Interview Portal:** Access scheduled interview rounds, interviewers, and Google Meet virtual room links.
-- **Application Withdrawal:** Voluntarily withdraw active applications prior to final selection.
 
 ### 💼 2. Recruiter & Corporate Portal
 - **Drive Publishing:** Post job openings with custom CGPA thresholds, target branches, salary packages (CTC), and required skills.
 - **Candidate Pipeline Review:** Filter applicants by CGPA, branch, and contact details.
+- **Candidate Resume Preview:** One-click direct preview and download of applicant PDF resumes directly from the recruiter pipeline.
 - **Multi-Round Interview Scheduler:** Schedule Technical, System Design, HR, and On-Campus interview rounds.
 - **Recruitment Stage Decisions:** Update candidate outcomes in real time.
 
 ### 🏛️ 3. University Placement Officer / Admin Console
 - **Institutional Analytics:** Real-time KPI dashboard tracking total registrations, placement percentage, active corporate partners, and total job offers.
 - **Corporate Partner Verification:** Approve or moderate company recruitment accounts before they publish drives.
-- **Placement Registry:** Centralized oversight of all participating students.
-- **Audit Logging:** Immutable audit trail recording administrative decisions and security actions.
+- **Placement Registry & Audit Logging:** Centralized oversight of all participating students and immutable audit trail.
+
+### 🌐 4. Animated Neural-Network Background
+- **Subtle AI/Tech Aesthetic:** Replaces static background dots with an interactive, responsive HTML5 Canvas simulation of interconnected nodes and proximity lines.
+- **Polished Palette:** Delicate blue (`#3B82F6`), cyan (`#06B6D4`), and violet (`#8B5CF6`) pulses that stay non-intrusive behind form cards and dashboard tables.
+- **Accessibility & Performance:** Features `pointer-events: none` to never block clicks, throttled resize handlers, and automatically respects the user's `prefers-reduced-motion` accessibility preferences.
 
 ---
 
-## ⚡ 1-Click Demo Accounts (Local Development)
+## ⚡ 1-Click Demo Accounts (Evaluator Shortcuts)
 
-The application includes realistic pre-seeded accounts for evaluators:
+Normal registration and login flows collect and authenticate real user input. For evaluator convenience, clearly identified 1-click demo buttons are provided on the login page:
 
 | Portal | Email | Password | Role Description |
 |---|---|---|---|

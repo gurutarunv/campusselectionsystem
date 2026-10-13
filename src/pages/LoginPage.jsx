@@ -1,56 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Logo from '../components/Logo';
-import { authApi } from '../services/api';
+import { authApi, studentApi } from '../services/api';
 
 export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser }) {
-  const [role, setRole] = useState('student');
+  const [role, setRole] = useState(() => {
+    const landingRole = localStorage.getItem('landing_role');
+    return landingRole || 'student';
+  });
   const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const landingRole = localStorage.getItem('landing_role');
-    if (landingRole) {
-      setRole(landingRole);
+    if (localStorage.getItem('landing_role')) {
       localStorage.removeItem('landing_role');
-    }
-
-    // Seed default demo accounts in client storage for offline compatibility
-    let db = JSON.parse(localStorage.getItem('user_db')) || {};
-    if (!db['student@campus.edu'] && !db['student']) {
-      db['student@campus.edu'] = {
-        role: 'student',
-        username: 'Guru Prasad',
-        email: 'student@campus.edu',
-        password: 'Student@123',
-        cgpa: '8.85',
-        branch: 'Computer Science & Engineering',
-        graduationYear: '2026',
-        skills: ['Java', 'Spring Boot', 'React', 'MySQL', 'REST API']
-      };
-      db['recruiter@google.com'] = {
-        role: 'company',
-        username: 'Google Careers',
-        email: 'recruiter@google.com',
-        password: 'Recruiter@123',
-        companyName: 'Google LLC',
-        industry: 'Software & Cloud'
-      };
-      db['admin@campus.edu'] = {
-        role: 'admin',
-        username: 'Dean of Placements',
-        email: 'admin@campus.edu',
-        password: 'Admin@123'
-      };
-      db['student'] = db['student@campus.edu'];
-      db['company'] = db['recruiter@google.com'];
-      db['admin'] = db['admin@campus.edu'];
-      
-      localStorage.setItem('user_db', JSON.stringify(db));
     }
   }, []);
 
+  // Demo account filler for evaluation / portfolio presentation
   const fillDemoAccount = (demoRole) => {
     setRole(demoRole);
     if (demoRole === 'student') {
@@ -63,6 +31,7 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
       setUsernameOrEmail('admin@campus.edu');
       setPassword('Admin@123');
     }
+    addToast(`Filled demo credentials for ${demoRole}. Click Sign In to evaluate.`, 'info');
   };
 
   const handleLoginSubmit = async (e) => {
@@ -70,13 +39,13 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
 
     const trimmedInput = usernameOrEmail.trim();
     if (!trimmedInput || !password) {
-      addToast('Please enter your email and password.', 'error');
+      addToast('Please enter both your email address and password.', 'error');
       return;
     }
 
     setIsLoading(true);
 
-    // 1. Try real Spring Boot backend API first
+    // 1. Authenticate against Spring Boot backend API
     try {
       const result = await authApi.login(trimmedInput, password);
       if (result && result.data && result.data.token) {
@@ -92,24 +61,66 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
         };
 
         localStorage.setItem('current_user', JSON.stringify(sessionUser));
-        setCurrentUser(sessionUser);
-        addToast('Authenticated with Spring Boot Backend!', 'success');
+        if (setCurrentUser) setCurrentUser(sessionUser);
+
+        // For student logins, load profile from backend
+        if (mappedRole === 'student') {
+          try {
+            const profileRes = await studentApi.getProfile();
+            if (profileRes?.data) {
+              const p = profileRes.data;
+              const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
+              profiles[sessionUser.email.toLowerCase()] = {
+                name: p.fullName,
+                email: p.email,
+                mobile: p.phone,
+                branch: p.branch,
+                graduationYear: p.graduationYear,
+                cgpa: p.cgpa,
+                skills: p.skillsJson ? p.skillsJson.split(',').map(s => s.trim()) : [],
+                resumeUrl: p.resumeUrl,
+                resumeFileName: p.resumeFileName,
+                resumeFileSize: p.resumeFileSize
+              };
+              localStorage.setItem('student_profiles', JSON.stringify(profiles));
+            }
+          } catch (profileErr) {
+            console.warn('Could not pre-cache student profile:', profileErr.message);
+          }
+        }
+
+        addToast(`Signed in successfully as ${sessionUser.username}!`, 'success');
         setIsLoading(false);
-        redirectToDashboard(mappedRole);
+        redirectToDashboard(mappedRole, trimmedInput);
         return;
       }
     } catch (err) {
-      // Backend not running locally yet; fall back to pre-seeded local storage
+      // If error is invalid credentials or bad request, display message immediately
+      const errMsg = err.message || '';
+      if (
+        errMsg.toLowerCase().includes('bad credentials') ||
+        errMsg.toLowerCase().includes('invalid') ||
+        errMsg.toLowerCase().includes('unauthorized') ||
+        errMsg.toLowerCase().includes('not found') ||
+        errMsg.toLowerCase().includes('401')
+      ) {
+        setIsLoading(false);
+        addToast('Invalid email address or password. Please verify your credentials.', 'error');
+        return;
+      }
+
+      // If backend is unreachable, check local storage fallback
+      console.warn('Backend unavailable, checking client demo storage:', errMsg);
     }
 
-    // 2. Client-side Fallback
+    // 2. Client-side Fallback (for offline demo mode)
     const db = JSON.parse(localStorage.getItem('user_db')) || {};
     const inputKey = trimmedInput.toLowerCase();
     const user = db[inputKey];
 
     if (!user) {
       setIsLoading(false);
-      addToast('Account not found. Please click Create an Account below or select a 1-Click Demo Portal.', 'error');
+      addToast('Account not found. Please click "Create an Account" or check your credentials.', 'error');
       return;
     }
 
@@ -119,30 +130,24 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
       return;
     }
 
-    if (user.role !== role) {
-      setIsLoading(false);
-      addToast(`This account is registered as a ${user.role}. Please switch to the appropriate portal tab above!`, 'error');
-      return;
-    }
-
     const sessionUser = {
       username: user.username,
       role: user.role,
       email: user.email
     };
     localStorage.setItem('current_user', JSON.stringify(sessionUser));
-    setCurrentUser(sessionUser);
+    if (setCurrentUser) setCurrentUser(sessionUser);
 
-    addToast(`Signed in successfully as ${user.username}!`, 'success');
+    addToast(`Signed in as ${user.username}!`, 'success');
     setIsLoading(false);
-    redirectToDashboard(role);
+    redirectToDashboard(user.role, trimmedInput);
   };
 
-  const redirectToDashboard = (targetRole) => {
+  const redirectToDashboard = (targetRole, inputEmail) => {
     setTimeout(() => {
       if (targetRole === 'student') {
         const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
-        const studentProfile = profiles[usernameOrEmail.toLowerCase()] || profiles['student@campus.edu'];
+        const studentProfile = profiles[inputEmail.toLowerCase()] || profiles['student@campus.edu'];
         if (studentProfile) {
           onNavigate('dashboard');
         } else {
@@ -153,7 +158,7 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
       } else if (targetRole === 'admin') {
         onNavigate('admin-dashboard');
       }
-    }, 600);
+    }, 500);
   };
 
   return (
@@ -161,38 +166,38 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
       <div className="container-box" style={{ maxWidth: '520px', padding: '36px' }}>
         <div style={{ textAlign: 'center', marginBottom: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Logo height="54px" style={{ marginBottom: '12px' }} />
-          <p style={{ color: 'var(--slate-500)', fontSize: '14px', fontWeight: 500 }}>
-            Sign in to access your placement dashboard
+          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--slate-900)', fontFamily: "'Outfit', sans-serif" }}>
+            Sign In to Placement Portal
+          </h1>
+          <p style={{ color: 'var(--slate-500)', fontSize: '14px', fontWeight: 500, marginTop: '4px' }}>
+            Enter your registered account credentials to proceed
           </p>
         </div>
 
-        {/* 1-Click Demo Login Bar */}
-        <div style={{ background: 'var(--slate-100)', padding: '10px 14px', borderRadius: 'var(--border-radius-sm)', marginBottom: '20px', border: '1px solid var(--slate-200)' }}>
-          <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--slate-600)', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.5px' }}>
-            ⚡ 1-Click Demo Portals (For Evaluators):
+        {/* 1-Click Demo Portals for Portfolio Evaluators */}
+        <div className="demo-portals-box">
+          <div className="demo-portals-title">
+            ⚡ Quick Demo Accounts (For Evaluators):
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button 
               type="button" 
               onClick={() => fillDemoAccount('student')}
-              className="btn-outline" 
-              style={{ fontSize: '12px', padding: '4px 10px', background: 'var(--white)' }}
+              className="btn-outline demo-pill-btn"
             >
               🎓 Student Demo
             </button>
             <button 
               type="button" 
               onClick={() => fillDemoAccount('company')}
-              className="btn-outline" 
-              style={{ fontSize: '12px', padding: '4px 10px', background: 'var(--white)' }}
+              className="btn-outline demo-pill-btn"
             >
               💼 Recruiter Demo
             </button>
             <button 
               type="button" 
               onClick={() => fillDemoAccount('admin')}
-              className="btn-outline" 
-              style={{ fontSize: '12px', padding: '4px 10px', background: 'var(--white)' }}
+              className="btn-outline demo-pill-btn"
             >
               🏛️ Admin Demo
             </button>
@@ -220,18 +225,18 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
             className={`auth-tab ${role === 'admin' ? 'active' : ''}`}
             onClick={() => setRole('admin')}
           >
-            Placement Admin
+            Placement Officer
           </button>
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleLoginSubmit}>
+        <form onSubmit={handleLoginSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="usernameOrEmail">Email Address or Username:</label>
+            <label htmlFor="usernameOrEmail">Email Address:</label>
             <input 
-              type="text" 
+              type="email" 
               id="usernameOrEmail" 
-              placeholder="e.g. student@campus.edu" 
+              placeholder="Enter your registered email address" 
               value={usernameOrEmail}
               onChange={(e) => setUsernameOrEmail(e.target.value)}
               required 
@@ -275,10 +280,10 @@ export default function LoginPage({ onNavigate, onBack, addToast, setCurrentUser
           <button 
             type="submit" 
             className="btn-primary" 
-            style={{ width: '100%', marginTop: '8px' }}
+            style={{ width: '100%', marginTop: '8px', padding: '11px' }}
             disabled={isLoading}
           >
-            {isLoading ? 'Signing In...' : `Sign In to ${role.charAt(0).toUpperCase() + role.slice(1)} Portal`}
+            {isLoading ? 'Authenticating...' : `Sign In to ${role.charAt(0).toUpperCase() + role.slice(1)} Portal`}
           </button>
           
           <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '12px' }}>

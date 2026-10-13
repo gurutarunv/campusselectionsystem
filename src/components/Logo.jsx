@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function Logo({ theme = 'light', height = '46px', style = {} }) {
   const isDark = theme === 'dark';
   const primaryColor = '#2563EB'; // Royal Blue

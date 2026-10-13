@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { adminApi } from '../services/api';
 
 export default function AdminDashboard({ user, onNavigate, onBack, addToast }) {
@@ -15,10 +15,6 @@ export default function AdminDashboard({ user, onNavigate, onBack, addToast }) {
   const [auditLogs, setAuditLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    loadAdminData();
-  }, [user]);
 
   const loadAdminData = async () => {
     setIsLoading(true);
@@ -101,6 +97,10 @@ export default function AdminDashboard({ user, onNavigate, onBack, addToast }) {
 
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadAdminData();
+  }, [user]);
 
   const loadDefaultCompanies = () => {
     const defaultCompanies = [

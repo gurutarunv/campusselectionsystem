@@ -13,6 +13,7 @@ public class ApplicationResponse {
     private JobStream stream;
     private String salaryPackage;
     private Long studentProfileId;
+    private Long studentUserId;
     private String studentName;
     private String studentEmail;
     private String studentPhone;
@@ -45,6 +46,9 @@ public class ApplicationResponse {
 
     public Long getStudentProfileId() { return studentProfileId; }
     public void setStudentProfileId(Long studentProfileId) { this.studentProfileId = studentProfileId; }
+
+    public Long getStudentUserId() { return studentUserId; }
+    public void setStudentUserId(Long studentUserId) { this.studentUserId = studentUserId; }
 
     public String getStudentName() { return studentName; }
     public void setStudentName(String studentName) { this.studentName = studentName; }

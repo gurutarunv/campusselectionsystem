@@ -79,7 +79,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/jobs").hasAnyAuthority("ROLE_RECRUITER", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/jobs/**").hasAnyAuthority("ROLE_RECRUITER", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/v1/jobs/**").hasAnyAuthority("ROLE_RECRUITER", "ROLE_ADMIN")
-                .requestMatchers("/api/v1/students/**").hasAnyAuthority("ROLE_STUDENT", "ROLE_ADMIN")
+                .requestMatchers("/api/v1/students/**").hasAnyAuthority("ROLE_STUDENT", "ROLE_RECRUITER", "ROLE_ADMIN")
                 
                 .anyRequest().authenticated()
             );

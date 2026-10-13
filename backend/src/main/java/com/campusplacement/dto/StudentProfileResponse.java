@@ -14,6 +14,10 @@ public class StudentProfileResponse {
     private String branch;
     private Integer graduationYear;
     private String resumeUrl;
+    private String resumeFileName;
+    private Long resumeFileSize;
+    private String resumeContentType;
+    private LocalDateTime resumeUploadedAt;
     private String skillsJson;
     private LocalDateTime createdAt;
 
@@ -49,6 +53,18 @@ public class StudentProfileResponse {
 
     public String getResumeUrl() { return resumeUrl; }
     public void setResumeUrl(String resumeUrl) { this.resumeUrl = resumeUrl; }
+
+    public String getResumeFileName() { return resumeFileName; }
+    public void setResumeFileName(String resumeFileName) { this.resumeFileName = resumeFileName; }
+
+    public Long getResumeFileSize() { return resumeFileSize; }
+    public void setResumeFileSize(Long resumeFileSize) { this.resumeFileSize = resumeFileSize; }
+
+    public String getResumeContentType() { return resumeContentType; }
+    public void setResumeContentType(String resumeContentType) { this.resumeContentType = resumeContentType; }
+
+    public LocalDateTime getResumeUploadedAt() { return resumeUploadedAt; }
+    public void setResumeUploadedAt(LocalDateTime resumeUploadedAt) { this.resumeUploadedAt = resumeUploadedAt; }
 
     public String getSkillsJson() { return skillsJson; }
     public void setSkillsJson(String skillsJson) { this.skillsJson = skillsJson; }

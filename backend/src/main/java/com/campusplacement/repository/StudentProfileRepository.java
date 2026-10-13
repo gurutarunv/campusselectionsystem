@@ -19,4 +19,7 @@ public interface StudentProfileRepository extends JpaRepository<StudentProfile, 
 
     @Query("SELECT s FROM StudentProfile s JOIN FETCH s.user WHERE s.user.email = :email")
     Optional<StudentProfile> findByUserEmail(String email);
+
+    boolean existsByPhone(String phone);
+    Optional<StudentProfile> findByPhone(String phone);
 }

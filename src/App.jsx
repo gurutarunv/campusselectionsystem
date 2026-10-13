@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import ToastContainer from './components/ToastContainer';
+import NeuralNetworkBackground from './components/NeuralNetworkBackground';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -11,40 +12,42 @@ import RecruiterDashboard from './pages/RecruiterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('landing');
-  const [currentUser, setCurrentUser] = useState(null);
-  const [toasts, setToasts] = useState([]);
-  
-  // Custom navigation stack
-  const [historyStack, setHistoryStack] = useState(['landing']);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('current_user')) || null;
+    } catch {
+      return null;
+    }
+  });
 
-  // Session check on mount and popstate initialization
-  useEffect(() => {
+  const [currentPage, setCurrentPage] = useState(() => {
     try {
       const savedUser = JSON.parse(localStorage.getItem('current_user'));
       if (savedUser) {
-        setCurrentUser(savedUser);
-        let initialPage = 'landing';
         if (savedUser.role === 'student') {
           const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
           const studentProfile = profiles[savedUser.email?.toLowerCase()] || profiles[savedUser.username?.toLowerCase()];
-          if (studentProfile) {
-            initialPage = 'dashboard';
-          } else {
-            initialPage = 'onboarding';
-          }
+          return studentProfile ? 'dashboard' : 'onboarding';
         } else if (savedUser.role === 'company' || savedUser.role === 'recruiter') {
-          initialPage = 'recruiter-dashboard';
+          return 'recruiter-dashboard';
         } else if (savedUser.role === 'admin') {
-          initialPage = 'admin-dashboard';
+          return 'admin-dashboard';
         }
-        setCurrentPage(initialPage);
-        setHistoryStack([initialPage]);
-        window.history.replaceState({ page: initialPage }, '', '');
-      } else {
-        window.history.replaceState({ page: 'landing' }, '', '');
       }
-    } catch (e) {}
+    } catch {
+      // ignore
+    }
+    return 'landing';
+  });
+
+  const [toasts, setToasts] = useState([]);
+  
+  // Custom navigation stack
+  const [historyStack, setHistoryStack] = useState(() => [currentPage]);
+
+  // Session popstate initialization
+  useEffect(() => {
+    window.history.replaceState({ page: currentPage }, '', '');
 
     // Listen to browser back/forward buttons
     const handlePopState = (event) => {
@@ -118,7 +121,14 @@ export default function App() {
           />
         );
       case 'signup':
-        return <SignupPage onNavigate={handleNavigate} onBack={handleBack} addToast={addToast} />;
+        return (
+          <SignupPage 
+            onNavigate={handleNavigate} 
+            onBack={handleBack} 
+            addToast={addToast} 
+            setCurrentUser={setCurrentUser} 
+          />
+        );
       case 'onboarding':
         return (
           <OnboardingPage 
@@ -176,7 +186,9 @@ export default function App() {
   const showNavbar = currentPage !== 'login' && currentPage !== 'signup';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
+      <NeuralNetworkBackground />
+
       {showNavbar && (
         <Navbar 
           user={currentUser} 

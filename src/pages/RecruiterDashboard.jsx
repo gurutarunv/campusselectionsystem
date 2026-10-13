@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { jobsApi, applicationsApi, interviewsApi } from '../services/api';
+import { useState, useEffect } from 'react';
+import { jobsApi, applicationsApi, interviewsApi, studentApi } from '../services/api';
 
 export default function RecruiterDashboard({ user, onNavigate, onBack, addToast }) {
   const [applications, setApplications] = useState([]);
@@ -25,10 +25,6 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
   const [interviewRound, setInterviewRound] = useState('TECHNICAL_ROUND');
   const [meetingLink, setMeetingLink] = useState('https://meet.google.com/cpa-demo-round');
 
-  useEffect(() => {
-    loadRecruiterData();
-  }, [user]);
-
   const loadRecruiterData = async () => {
     setIsLoading(true);
     const allProfiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
@@ -45,13 +41,14 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
           studentUsername: app.studentName,
           studentEmail: app.studentEmail,
           studentName: app.studentName,
-          studentPhone: app.studentPhone || '+91 98765 43210',
-          studentBranch: app.studentBranch || 'Computer Science',
-          studentCgpa: app.studentCgpa || 8.5,
+          studentPhone: app.studentPhone || '',
+          studentBranch: app.studentBranch || 'Engineering',
+          studentCgpa: app.studentCgpa || 'N/A',
+          studentUserId: app.studentUserId,
           company: app.companyName,
           job: app.jobTitle,
           stream: app.stream === 'NON_IT' ? 'NON-IT' : 'IT',
-          date: app.appliedAt ? app.appliedAt.split('T')[0] : '2026-10-08',
+          date: app.appliedAt ? app.appliedAt.split('T')[0] : 'Recent',
           status: app.status.replace(/_/g, ' ')
         }));
         setApplications(mappedApps);
@@ -113,6 +110,10 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
 
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadRecruiterData();
+  }, [user]);
 
   const handlePostJobSubmit = async (e) => {
     e.preventDefault();
@@ -227,6 +228,22 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
     handleUpdateStatus(selectedCandidateIndex, 'Interview Scheduled');
     setIsInterviewModalOpen(false);
     addToast(`Interview invitation dispatched to ${candidate.studentName}!`, 'success');
+  };
+
+  const handleViewCandidateResume = async (app) => {
+    try {
+      const candidateUserId = app.studentUserId || (app.id === 1 ? 4 : app.id === 2 ? 5 : null);
+      if (!candidateUserId) {
+        addToast('No resume file associated with this candidate.', 'info');
+        return;
+      }
+      const blob = await studentApi.getResumeResourceBlob(`/students/${candidateUserId}/resume/preview`);
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (err) {
+      addToast(err.message || 'Unable to preview candidate resume.', 'error');
+    }
   };
 
   // Stats Counters
@@ -373,6 +390,17 @@ export default function RecruiterDashboard({ user, onNavigate, onBack, addToast 
                         </select>
 
                         <button 
+                          type="button"
+                          className="btn-outline" 
+                          style={{ padding: '5px 10px', fontSize: '12px' }}
+                          title="View Candidate Resume PDF"
+                          onClick={() => handleViewCandidateResume(app)}
+                        >
+                          📄 Resume
+                        </button>
+
+                        <button 
+                          type="button"
                           className="btn-outline" 
                           style={{ padding: '5px 10px', fontSize: '12px' }}
                           title="Schedule Interview Round"

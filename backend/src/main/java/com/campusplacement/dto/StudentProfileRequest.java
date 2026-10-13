@@ -1,29 +1,31 @@
 package com.campusplacement.dto;
 
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
 public class StudentProfileRequest {
 
     @NotBlank(message = "Full name is required")
+    @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
     private String fullName;
 
     @NotBlank(message = "Phone number is required")
+    @Pattern(regexp = "^(\\+91[\\-\\s]?)?[6-9]\\d{9}$", message = "Please enter a valid 10-digit mobile number")
     private String phone;
 
-    @NotBlank(message = "Gender is required")
-    private String gender;
+    private String gender = "unspecified";
 
-    @DecimalMin(value = "0.0")
-    @DecimalMax(value = "10.0")
+    @DecimalMin(value = "0.0", message = "CGPA cannot be negative")
+    @DecimalMax(value = "10.0", message = "CGPA cannot exceed 10.0")
     private BigDecimal cgpa;
 
-    @NotBlank(message = "Branch is required")
+    @NotBlank(message = "Department / Branch is required")
     private String branch;
 
+    @Min(value = 2020, message = "Graduation year must be valid")
+    @Max(value = 2035, message = "Graduation year must be valid")
     private Integer graduationYear;
+
     private String resumeUrl;
     private String skillsJson;
 
@@ -37,7 +39,7 @@ public class StudentProfileRequest {
     public void setPhone(String phone) { this.phone = phone; }
 
     public String getGender() { return gender; }
-    public void setGender(String gender) { this.gender = gender; }
+    public void setGender(String gender) { this.gender = (gender != null && !gender.isBlank()) ? gender : "unspecified"; }
 
     public BigDecimal getCgpa() { return cgpa; }
     public void setCgpa(BigDecimal cgpa) { this.cgpa = cgpa; }

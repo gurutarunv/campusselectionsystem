@@ -140,7 +140,15 @@ public class AdminServiceImpl implements AdminService {
         res.setCgpa(profile.getCgpa());
         res.setBranch(profile.getBranch());
         res.setGraduationYear(profile.getGraduationYear());
-        res.setResumeUrl(profile.getResumeUrl());
+        if (profile.getResumeStorageName() != null) {
+            res.setResumeUrl("/api/v1/students/" + profile.getUser().getId() + "/resume/download");
+        } else {
+            res.setResumeUrl(profile.getResumeUrl());
+        }
+        res.setResumeFileName(profile.getResumeFileName());
+        res.setResumeFileSize(profile.getResumeFileSize());
+        res.setResumeContentType(profile.getResumeContentType());
+        res.setResumeUploadedAt(profile.getResumeUploadedAt());
         res.setSkillsJson(profile.getSkillsJson());
         res.setCreatedAt(profile.getCreatedAt());
         return res;

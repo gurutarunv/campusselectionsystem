@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { studentApi, interviewsApi, applicationsApi } from '../services/api';
 
 export default function StudentDashboard({ user, onNavigate, onBack, addToast }) {
@@ -6,18 +6,14 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
   const [applications, setApplications] = useState([]);
   const [interviews, setInterviews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) return;
-    loadStudentData();
-  }, [user]);
+  const [isPreviewingResume, setIsPreviewingResume] = useState(false);
 
   const loadStudentData = async () => {
     setIsLoading(true);
-    const usernameKey = user.username.toLowerCase();
+    const usernameKey = (user.username || '').toLowerCase();
     const emailKey = (user.email || '').toLowerCase();
 
-    // 1. Try loading from Spring Boot Backend API
+    // 1. Try loading real student profile and applications from Spring Boot Backend API
     try {
       const [profileRes, appsRes, interviewsRes] = await Promise.allSettled([
         studentApi.getProfile(),
@@ -27,16 +23,19 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
 
       if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
         const p = profileRes.value.data;
-        const mappedSkills = p.skillsJson ? p.skillsJson.split(',').map(s => s.trim()) : [];
+        const mappedSkills = p.skillsJson ? p.skillsJson.split(',').map(s => s.trim()).filter(Boolean) : [];
         setProfile({
-          name: p.fullName,
-          email: p.email,
-          mobile: p.phone,
+          name: p.fullName || user.username,
+          email: p.email || user.email,
+          mobile: p.phone || 'Not Provided',
           gender: p.gender,
-          cgpa: p.cgpa,
-          branch: p.branch,
-          graduationYear: p.graduationYear,
-          skills: mappedSkills
+          cgpa: p.cgpa != null ? p.cgpa : 'N/A',
+          branch: p.branch || 'Not Specified',
+          graduationYear: p.graduationYear || 'N/A',
+          skills: mappedSkills,
+          resumeFileName: p.resumeFileName,
+          resumeFileSize: p.resumeFileSize,
+          resumeUrl: p.resumeUrl
         });
       }
 
@@ -67,25 +66,36 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
         return;
       }
     } catch (err) {
-      // Backend not running locally yet; fall back to local storage
+      console.warn('Backend unavailable or session expired:', err.message);
     }
 
-    // 2. Fallback to localStorage
+    // 2. Fallback to localStorage for cached session data
     const profiles = JSON.parse(localStorage.getItem('student_profiles')) || {};
     const currentProfile = profiles[emailKey] || profiles[usernameKey];
     
     if (currentProfile) {
-      setProfile(currentProfile);
+      setProfile({
+        name: currentProfile.name || user.username,
+        email: currentProfile.email || user.email,
+        mobile: currentProfile.mobile || 'Not Provided',
+        cgpa: currentProfile.cgpa || 'N/A',
+        branch: currentProfile.branch || 'Not Specified',
+        graduationYear: currentProfile.graduationYear || 'N/A',
+        skills: Array.isArray(currentProfile.skills) ? currentProfile.skills : [],
+        resumeFileName: currentProfile.resumeFileName,
+        resumeFileSize: currentProfile.resumeFileSize,
+        resumeUrl: currentProfile.resumeUrl
+      });
     } else {
       setProfile({
-        name: localStorage.getItem('studentName') || user.username,
-        email: localStorage.getItem('studentEmail') || user.email || 'student@campus.edu',
-        mobile: localStorage.getItem('studentMobile') || '+91 98765 43210',
-        gender: localStorage.getItem('gender') || 'Male',
-        cgpa: localStorage.getItem('studentCgpa') || '8.85',
-        branch: localStorage.getItem('studentBranch') || 'Computer Science & Engineering',
-        graduationYear: '2026',
-        skills: ['Java', 'Spring Boot', 'React', 'SQL', 'Data Structures']
+        name: user.username,
+        email: user.email || '',
+        mobile: 'Not Provided',
+        cgpa: 'N/A',
+        branch: 'Not Specified',
+        graduationYear: 'N/A',
+        skills: [],
+        resumeFileName: null
       });
     }
 
@@ -96,46 +106,14 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
                app.studentName === user.username
     );
 
-    if (filteredApps.length === 0) {
-      const defaultApps = [
-        {
-          studentUsername: user.username,
-          studentEmail: user.email || 'student@campus.edu',
-          studentName: user.username,
-          company: 'Google LLC',
-          job: 'Software Development Engineer - Cloud & Infrastructure',
-          stream: 'IT',
-          date: '2026-10-02',
-          status: 'Shortlisted'
-        },
-        {
-          studentUsername: user.username,
-          studentEmail: user.email || 'student@campus.edu',
-          studentName: user.username,
-          company: 'Amazon AWS',
-          job: 'Cloud Support & Backend Systems Engineer',
-          stream: 'IT',
-          date: '2026-10-05',
-          status: 'Under Review'
-        }
-      ];
-      setApplications(defaultApps);
-      localStorage.setItem('job_applications', JSON.stringify(defaultApps));
-    } else {
-      setApplications(filteredApps);
-    }
-
-    setInterviews([
-      {
-        company: 'Google LLC',
-        round: 'Round 1: Technical & DSA Interview',
-        time: 'Tomorrow, 10:30 AM IST',
-        mode: 'Google Meet (Virtual)',
-        link: 'https://meet.google.com/cpa-demo-inte'
-      }
-    ]);
+    setApplications(filteredApps);
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    if (!user) return;
+    loadStudentData();
+  }, [user]);
 
   const handleWithdrawApplication = async (index) => {
     const targetApp = applications[index];
@@ -147,10 +125,12 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
     if (targetApp.id) {
       try {
         await applicationsApi.withdraw(targetApp.id);
-        addToast(`Application to ${targetApp.company} has been withdrawn via backend.`, 'success');
+        addToast(`Application to ${targetApp.company} has been withdrawn.`, 'success');
         loadStudentData();
         return;
-      } catch (e) {}
+      } catch (err) {
+        console.warn('Backend withdraw failed, updating local state', err);
+      }
     }
 
     const updatedApps = [...applications];
@@ -166,20 +146,58 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
     addToast(`Application to ${targetApp.company} has been withdrawn.`, 'success');
   };
 
-  if (!user || !profile) {
+  const handlePreviewResume = async () => {
+    try {
+      setIsPreviewingResume(true);
+      const blob = await studentApi.getResumeResourceBlob('/students/resume/preview');
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (err) {
+      addToast(err.message || 'Unable to open resume preview.', 'error');
+    } finally {
+      setIsPreviewingResume(false);
+    }
+  };
+
+  const handleDownloadResume = async () => {
+    try {
+      const blob = await studentApi.getResumeResourceBlob('/students/resume/download');
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = profile?.resumeFileName || 'my_resume.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+    } catch (err) {
+      addToast(err.message || 'Unable to download resume.', 'error');
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return '';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  if (isLoading || !profile) {
     return <div className="container" style={{ textAlign: 'center', marginTop: '50px' }}>Loading Placement Dashboard...</div>;
   }
 
   const initials = profile.name
     ? profile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-    : user.username[0].toUpperCase();
+    : (user.username ? user.username[0].toUpperCase() : 'S');
 
   return (
     <div className="container">
       
       {/* Student Profile Overview Panel */}
       <div className="profile-panel">
-        <div className="profile-avatar">{initials || 'S'}</div>
+        <div className="profile-avatar">{initials}</div>
         <div className="profile-details" style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <div className="profile-name">{profile.name}</div>
@@ -187,7 +205,7 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
           </div>
 
           <div className="profile-meta" style={{ marginTop: '6px' }}>
-            📧 {profile.email} &nbsp;|&nbsp; 📱 {profile.mobile} &nbsp;|&nbsp; 🎓 {profile.branch || 'Engineering'} &nbsp;|&nbsp; 🎯 CGPA: <strong>{profile.cgpa || '8.85'}</strong>
+            📧 {profile.email} &nbsp;|&nbsp; 📱 {profile.mobile} &nbsp;|&nbsp; 🎓 {profile.branch} ({profile.graduationYear}) &nbsp;|&nbsp; 🎯 CGPA: <strong>{profile.cgpa}</strong>
           </div>
 
           {/* Skill Badges */}
@@ -209,8 +227,40 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
               ))
             ) : (
               <span style={{ color: 'var(--slate-500)', fontSize: '13px', fontStyle: 'italic' }}>
-                No skills specified yet.
+                No technical skills added yet. Click Edit Profile to add skills.
               </span>
+            )}
+          </div>
+
+          {/* Resume PDF Badge and Actions */}
+          <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--slate-200)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {profile.resumeFileName ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  📄 Resume: {profile.resumeFileName} {profile.resumeFileSize ? `(${formatFileSize(profile.resumeFileSize)})` : ''}
+                </span>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  style={{ padding: '4px 10px', fontSize: '12px' }}
+                  onClick={handlePreviewResume}
+                  disabled={isPreviewingResume}
+                >
+                  👁️ {isPreviewingResume ? 'Loading...' : 'Preview PDF'}
+                </button>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  style={{ padding: '4px 10px', fontSize: '12px' }}
+                  onClick={handleDownloadResume}
+                >
+                  📥 Download
+                </button>
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                ⚠️ No PDF resume uploaded yet. Upload a resume to qualify for job drives.
+              </div>
             )}
           </div>
         </div>
@@ -221,7 +271,7 @@ export default function StudentDashboard({ user, onNavigate, onBack, addToast })
             style={{ padding: '8px 16px', fontSize: '14px' }}
             onClick={() => onNavigate('onboarding')}
           >
-            ✏️ Edit Academic Profile
+            ✏️ Edit Academic Profile & Resume
           </button>
         </div>
       </div>

@@ -8,6 +8,7 @@ import com.campusplacement.repository.CompanyRepository;
 import com.campusplacement.repository.StudentProfileRepository;
 import com.campusplacement.repository.UserRepository;
 import com.campusplacement.security.JwtTokenProvider;
+import com.campusplacement.service.FileStorageService;
 import com.campusplacement.service.impl.AuthServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,6 +42,9 @@ class AuthServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private FileStorageService fileStorageService;
+
     private JwtTokenProvider tokenProvider;
     private AuthServiceImpl authService;
 
@@ -54,7 +60,8 @@ class AuthServiceTest {
                 studentProfileRepository,
                 companyRepository,
                 passwordEncoder,
-                tokenProvider
+                tokenProvider,
+                fileStorageService
         );
     }
 
@@ -64,10 +71,32 @@ class AuthServiceTest {
         request.setEmail("student@campus.edu");
         request.setPassword("password123");
         request.setFullName("Test Student");
-        request.setPhone("1234567890");
+        request.setPhone("9876543210");
         request.setGender("male");
+        request.setCgpa(BigDecimal.valueOf(8.5));
+        request.setBranch("CSE");
+        request.setGraduationYear(2026);
 
         when(userRepository.existsByEmail("student@campus.edu")).thenReturn(true);
+
+        assertThrows(DuplicateResourceException.class, () -> authService.registerStudent(request));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void registerStudent_DuplicatePhone_ThrowsDuplicateResourceException() {
+        RegisterStudentRequest request = new RegisterStudentRequest();
+        request.setEmail("new.student@campus.edu");
+        request.setPassword("password123");
+        request.setFullName("Test Student 2");
+        request.setPhone("9876543210");
+        request.setGender("male");
+        request.setCgpa(BigDecimal.valueOf(8.5));
+        request.setBranch("CSE");
+        request.setGraduationYear(2026);
+
+        when(userRepository.existsByEmail("new.student@campus.edu")).thenReturn(false);
+        when(studentProfileRepository.existsByPhone("9876543210")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> authService.registerStudent(request));
         verify(userRepository, never()).save(any(User.class));

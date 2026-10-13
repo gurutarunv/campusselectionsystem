@@ -8,10 +8,12 @@ import com.campusplacement.dto.RegisterStudentRequest;
 import com.campusplacement.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -29,9 +31,17 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
 
-    @PostMapping("/register/student")
-    public ResponseEntity<ApiResponse<AuthResponse>> registerStudent(@Valid @RequestBody RegisterStudentRequest request) {
+    @PostMapping(value = "/register/student", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse<AuthResponse>> registerStudentJson(@Valid @RequestBody RegisterStudentRequest request) {
         AuthResponse response = authService.registerStudent(request);
+        return new ResponseEntity<>(ApiResponse.success("Student registration successful", response), HttpStatus.CREATED);
+    }
+
+    @PostMapping(value = "/register/student", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<AuthResponse>> registerStudentMultipart(
+            @Valid @ModelAttribute RegisterStudentRequest request,
+            @RequestPart(value = "resumeFile", required = false) MultipartFile resumeFile) {
+        AuthResponse response = authService.registerStudentWithResume(request, resumeFile);
         return new ResponseEntity<>(ApiResponse.success("Student registration successful", response), HttpStatus.CREATED);
     }
 

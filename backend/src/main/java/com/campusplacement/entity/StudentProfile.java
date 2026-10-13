@@ -40,6 +40,21 @@ public class StudentProfile {
     @Column(name = "resume_url", length = 500)
     private String resumeUrl;
 
+    @Column(name = "resume_file_name", length = 255)
+    private String resumeFileName;
+
+    @Column(name = "resume_storage_name", length = 255)
+    private String resumeStorageName;
+
+    @Column(name = "resume_file_size")
+    private Long resumeFileSize;
+
+    @Column(name = "resume_content_type", length = 100)
+    private String resumeContentType;
+
+    @Column(name = "resume_uploaded_at")
+    private LocalDateTime resumeUploadedAt;
+
     @Column(name = "skills_json", columnDefinition = "TEXT")
     private String skillsJson; // e.g. "Java, Spring Boot, React, MySQL"
 
@@ -100,6 +115,21 @@ public class StudentProfile {
 
     public String getResumeUrl() { return resumeUrl; }
     public void setResumeUrl(String resumeUrl) { this.resumeUrl = resumeUrl; }
+
+    public String getResumeFileName() { return resumeFileName; }
+    public void setResumeFileName(String resumeFileName) { this.resumeFileName = resumeFileName; }
+
+    public String getResumeStorageName() { return resumeStorageName; }
+    public void setResumeStorageName(String resumeStorageName) { this.resumeStorageName = resumeStorageName; }
+
+    public Long getResumeFileSize() { return resumeFileSize; }
+    public void setResumeFileSize(Long resumeFileSize) { this.resumeFileSize = resumeFileSize; }
+
+    public String getResumeContentType() { return resumeContentType; }
+    public void setResumeContentType(String resumeContentType) { this.resumeContentType = resumeContentType; }
+
+    public LocalDateTime getResumeUploadedAt() { return resumeUploadedAt; }
+    public void setResumeUploadedAt(LocalDateTime resumeUploadedAt) { this.resumeUploadedAt = resumeUploadedAt; }
 
     public String getSkillsJson() { return skillsJson; }
     public void setSkillsJson(String skillsJson) { this.skillsJson = skillsJson; }

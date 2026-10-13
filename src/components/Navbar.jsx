@@ -1,4 +1,3 @@
-import React from 'react';
 import Logo from './Logo';
 
 export default function Navbar({ user, onLogout, onNavigate, onBack, canGoBack }) {

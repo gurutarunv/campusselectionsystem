@@ -4,6 +4,7 @@ import com.campusplacement.dto.AuthRequest;
 import com.campusplacement.dto.AuthResponse;
 import com.campusplacement.dto.RegisterCompanyRequest;
 import com.campusplacement.dto.RegisterStudentRequest;
+import com.campusplacement.dto.StoredFile;
 import com.campusplacement.entity.Company;
 import com.campusplacement.entity.StudentProfile;
 import com.campusplacement.entity.User;
@@ -16,6 +17,7 @@ import com.campusplacement.repository.UserRepository;
 import com.campusplacement.security.JwtTokenProvider;
 import com.campusplacement.security.UserPrincipal;
 import com.campusplacement.service.AuthService;
+import com.campusplacement.service.FileStorageService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -23,6 +25,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -33,19 +38,22 @@ public class AuthServiceImpl implements AuthService {
     private final CompanyRepository companyRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final FileStorageService fileStorageService;
 
     public AuthServiceImpl(AuthenticationManager authenticationManager,
                            UserRepository userRepository,
                            StudentProfileRepository studentProfileRepository,
                            CompanyRepository companyRepository,
                            PasswordEncoder passwordEncoder,
-                           JwtTokenProvider tokenProvider) {
+                           JwtTokenProvider tokenProvider,
+                           FileStorageService fileStorageService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.companyRepository = companyRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -77,8 +85,17 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse registerStudent(RegisterStudentRequest request) {
+        return registerStudentWithResume(request, null);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse registerStudentWithResume(RegisterStudentRequest request, MultipartFile resumeFile) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("An account with email " + request.getEmail() + " already exists.");
+        }
+        if (studentProfileRepository.existsByPhone(request.getPhone())) {
+            throw new DuplicateResourceException("An account with mobile number " + request.getPhone() + " already exists.");
         }
 
         User user = new User(
@@ -92,12 +109,23 @@ public class AuthServiceImpl implements AuthService {
                 savedUser,
                 request.getFullName(),
                 request.getPhone(),
-                request.getGender(),
+                request.getGender() != null ? request.getGender() : "unspecified",
                 request.getCgpa(),
                 request.getBranch(),
                 request.getGraduationYear(),
                 request.getSkillsJson()
         );
+
+        if (resumeFile != null && !resumeFile.isEmpty()) {
+            StoredFile storedFile = fileStorageService.storePdf(resumeFile);
+            profile.setResumeFileName(storedFile.getOriginalFileName());
+            profile.setResumeStorageName(storedFile.getStorageFileName());
+            profile.setResumeFileSize(storedFile.getFileSize());
+            profile.setResumeContentType(storedFile.getContentType());
+            profile.setResumeUploadedAt(LocalDateTime.now());
+            profile.setResumeUrl("/api/v1/students/resume/download");
+        }
+
         studentProfileRepository.save(profile);
 
         return login(new AuthRequest(request.getEmail(), request.getPassword()));

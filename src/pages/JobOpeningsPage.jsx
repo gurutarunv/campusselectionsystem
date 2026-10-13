@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { jobsApi, applicationsApi, studentApi } from '../services/api';
 
 export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, addToast }) {
@@ -7,10 +7,6 @@ export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, 
   const [searchTerm, setSearchTerm] = useState('');
   const [studentProfile, setStudentProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadStudentAndJobs();
-  }, [user, streamType]);
 
   const loadStudentAndJobs = async () => {
     setIsLoading(true);
@@ -212,6 +208,10 @@ export default function JobOpeningsPage({ user, streamType, onNavigate, onBack, 
     setJobs([...relevantPosted, ...baseJobs]);
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadStudentAndJobs();
+  }, [user, streamType]);
 
   const loadLocalApplications = (usernameKey, emailKey) => {
     const allApplications = JSON.parse(localStorage.getItem('job_applications')) || [];

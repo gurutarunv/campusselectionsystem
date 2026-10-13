@@ -69,8 +69,6 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background-image: radial-gradient(#e2e8f0 1.2px, transparent 1.2px);
-    background-size: 28px 28px;
     -webkit-font-smoothing: antialiased;
 }
 
@@ -459,14 +457,13 @@ a:hover {
 
 /* ===== Auth & Forms ===== */
 .bg {
-    background: radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.05) 0%, transparent 40%),
-                var(--bg-light);
     min-height: calc(100vh - 80px);
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 32px 16px;
+    position: relative;
+    z-index: 1;
 }
 
 .container-box {
@@ -893,4 +890,278 @@ a:hover {
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+/* ===== Neural Network Canvas Background ===== */
+.neural-network-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.85;
+}
+
+/* Ensure foreground content stacks cleanly above canvas */
+.container,
+.hero-container,
+.feature-section,
+.navbar,
+.container-box,
+footer {
+    position: relative;
+    z-index: 1;
+}
+
+/* ===== Form Sections & Field Validations ===== */
+.form-section-card {
+    background: #f8fafc;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--border-radius-md);
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: var(--transition-fast);
+}
+.form-section-card:hover {
+    border-color: #cbd5e1;
+    background: #fbfcfe;
+}
+.form-section-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--slate-800);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.req-star {
+    color: var(--accent-rose);
+    font-weight: 700;
+}
+.field-error-msg {
+    color: #e11d48;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 4px;
+    display: block;
+}
+.input-error {
+    border-color: #f43f5e !important;
+    background-color: #fff1f2 !important;
+}
+
+/* ===== Skills Tag Input ===== */
+.skills-tag-input-container {
+    width: 100%;
+}
+.skills-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 38px;
+    padding: 8px 12px;
+    background: var(--white);
+    border: 1px solid var(--slate-300);
+    border-radius: var(--border-radius-sm);
+    align-items: center;
+}
+.skill-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--primary-light);
+    color: var(--primary);
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    animation: fadeIn 0.2s ease-in-out;
+}
+.skill-chip-remove {
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.7;
+    transition: var(--transition-fast);
+}
+.skill-chip-remove:hover {
+    opacity: 1;
+    color: #b91c1c;
+}
+.skill-suggest-btn {
+    background: var(--white);
+    border: 1px solid var(--slate-200);
+    color: var(--slate-600);
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+.skill-suggest-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-light);
+}
+.skill-suggest-btn.selected {
+    background: var(--primary);
+    color: var(--white);
+    border-color: var(--primary);
+}
+
+/* ===== PDF Resume Uploader ===== */
+.resume-uploader-container {
+    width: 100%;
+}
+.resume-dropzone {
+    border: 2px dashed #94a3b8;
+    background: #f8fafc;
+    border-radius: var(--border-radius-md);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.resume-dropzone:hover,
+.resume-dropzone.dragging {
+    border-color: var(--primary);
+    background: #eff6ff;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+.dropzone-icon {
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+.dropzone-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 14.5px;
+}
+.dropzone-hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--slate-500);
+}
+.resume-selected-card,
+.resume-existing-card {
+    background: var(--white);
+    border: 1px solid var(--slate-200);
+    border-radius: var(--border-radius-md);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-xs);
+}
+.resume-existing-card {
+    border-color: #a7f3d0;
+    background: #f0fdf4;
+}
+.resume-file-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 220px;
+}
+.pdf-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #fee2e2;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.pdf-icon-badge.active {
+    background: #dcfce7;
+    color: #10b981;
+}
+.resume-file-name {
+    font-weight: 700;
+    color: var(--slate-900);
+    font-size: 14px;
+    word-break: break-all;
+}
+.resume-file-size {
+    font-size: 12.5px;
+    color: var(--slate-500);
+    margin-top: 2px;
+}
+.resume-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.saved-badge {
+    background: #10b981;
+    color: var(--white);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    letter-spacing: 0.3px;
+}
+.resume-upload-error {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: var(--border-radius-sm);
+    color: #e11d48;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ===== Demo Portals Box ===== */
+.demo-portals-box {
+    background: var(--slate-100);
+    padding: 12px 16px;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 20px;
+    border: 1px solid var(--slate-200);
+}
+.demo-portals-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--slate-600);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+.demo-pill-btn {
+    font-size: 12px !important;
+    padding: 5px 12px !important;
+    background: var(--white) !important;
+    border-color: var(--slate-300) !important;
+    color: var(--slate-700) !important;
+}
+.demo-pill-btn:hover {
+    border-color: var(--primary) !important;
+    color: var(--primary) !important;
 }

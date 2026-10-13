@@ -205,6 +205,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         res.setStream(app.getJob().getStream());
         res.setSalaryPackage(app.getJob().getSalaryPackage());
         res.setStudentProfileId(app.getStudentProfile().getId());
+        res.setStudentUserId(app.getStudentProfile().getUser().getId());
         res.setStudentName(app.getStudentProfile().getFullName());
         res.setStudentEmail(app.getStudentProfile().getUser().getEmail());
         res.setStudentPhone(app.getStudentProfile().getPhone());

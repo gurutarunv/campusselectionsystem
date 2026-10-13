@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function LandingPage({ onNavigate }) {
   const handleRecruiterRedirect = () => {
     localStorage.setItem('landing_role', 'company');

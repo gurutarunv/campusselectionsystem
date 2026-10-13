@@ -48,10 +48,22 @@ Content-Type: application/json
 
 | Method | Endpoint | Role | Description |
 |---|---|---|---|
-| `GET` | `/api/v1/students/me` | `ROLE_STUDENT` | Fetch full student profile and academic details |
-| `PUT` | `/api/v1/students/me` | `ROLE_STUDENT` | Update student profile, CGPA, branch, skills |
+| `GET` | `/api/v1/students/me` | `ROLE_STUDENT` | Fetch full student profile, academic details, and resume metadata |
+| `PUT` | `/api/v1/students/me` | `ROLE_STUDENT` | Update student profile, CGPA, branch, graduation year, skills |
+| `POST` | `/api/v1/students/resume` | `ROLE_STUDENT` | Upload or replace PDF resume (`multipart/form-data`, file key: `resume`) |
+| `GET` | `/api/v1/students/resume/download` | `ROLE_STUDENT` | Download authenticated student's PDF resume (`Content-Disposition: attachment`) |
+| `GET` | `/api/v1/students/resume/preview` | `ROLE_STUDENT` | Inline browser preview of authenticated student's PDF resume (`Content-Disposition: inline`) |
+| `DELETE` | `/api/v1/students/resume` | `ROLE_STUDENT` | Delete student's resume PDF from storage and clear metadata |
+| `GET` | `/api/v1/students/{userId}/resume/download` | `ROLE_RECRUITER`, `ROLE_ADMIN` | Recruiter/Admin download of candidate PDF resume |
+| `GET` | `/api/v1/students/{userId}/resume/preview` | `ROLE_RECRUITER`, `ROLE_ADMIN` | Recruiter/Admin inline preview of candidate PDF resume |
 | `GET` | `/api/v1/students/me/applications` | `ROLE_STUDENT` | List all jobs applied by the authenticated student |
 | `GET` | `/api/v1/students/me/interviews` | `ROLE_STUDENT` | View scheduled interview rounds and meeting links |
+
+### Resume Upload Specifications
+* **Allowed MIME types:** `application/pdf`
+* **File signature:** Magic bytes validated (`%PDF` / `0x25 0x50 0x44 0x46`)
+* **Maximum file size:** 5 MB (configurable via `spring.servlet.multipart.max-file-size`)
+* **Storage strategy:** Unique server-side UUID storage names outside web root; path-traversal prevention.
 
 ---
 
